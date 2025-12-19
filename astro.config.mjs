@@ -14,7 +14,8 @@ export default defineConfig({
 			],
 			logo: {
          
-				src: './src/assets/logo.svg'
+				src: './src/assets/logo.svg',
+				replacesTitle: true
 			},
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/yourusername/webcodecs-fundamentals' }
