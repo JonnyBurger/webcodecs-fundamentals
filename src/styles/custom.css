@@ -1,0 +1,18 @@
+/* Remove horizontal divider below page header */
+.content-panel hr {
+  display: none;
+}
+
+/* Alternative: target the specific hr after the header */
+.sl-markdown-content > hr:first-of-type {
+  display: none;
+}
+
+/* Set default theme to light */
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme='auto'] {
+  color-scheme: light;
+}

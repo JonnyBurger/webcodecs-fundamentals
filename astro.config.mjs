@@ -9,6 +9,9 @@ export default defineConfig({
 			title: 'WebCodecs Fundamentals',
 			description: 'The missing manual for the WebCodecs API - from basics to production patterns.',
 			tableOfContents: false,
+			customCss: [
+				'./src/styles/custom.css',
+			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/yourusername/webcodecs-fundamentals' }
 			],
