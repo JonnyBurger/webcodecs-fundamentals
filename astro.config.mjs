@@ -12,6 +12,10 @@ export default defineConfig({
 			customCss: [
 				'./src/styles/custom.css',
 			],
+			logo: {
+         
+				src: './src/assets/logo.svg'
+			},
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/yourusername/webcodecs-fundamentals' }
 			],
