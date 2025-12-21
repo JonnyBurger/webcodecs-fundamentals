@@ -24,9 +24,38 @@ export default defineConfig({
 				{
 					label: 'Introduction',
 					items: [
+						{ label: 'What are Codecs?', slug: 'intro/what-are-codecs' },
 						{ label: 'What is WebCodecs?', slug: 'intro/what-is-webcodecs' },
 						{ label: 'Why use WebCodecs?', slug: 'intro/why-use-webcodecs' },
-						{ label: 'The Reality Check', slug: 'intro/reality-check' },
+						{ label: 'Harder than it looks', slug: 'intro/reality-check' },
+						{ label: 'MediaBunny: ffmpeg for the web', slug: 'intro/media-bunny' },
+					],
+				},
+
+				{
+					label: 'Basics',
+					items: [
+						{ label: 'VideoFrame', slug: 'basics/video-frame' },
+		
+						{ label: 'EncodedvideoChunk', slug: 'basics/encoded-video-chunk' },
+						{ label: 'Codecs', slug: 'basics/codecs' },
+						{ label: 'Muxing', slug: 'basics/muxing' },
+						{ label: 'Containers', slug: 'basics/containers' },
+						{ label: 'Decoder', slug: 'basics/decoder' },
+						{ label: 'Encoder', slug: 'basics/encoder' },
+						{ label: 'Rendering', slug: 'basics/rendering' },
+
+					],
+				},
+
+				{
+					label: 'Audio',
+					items: [
+						{ label: 'EncodedAudioChunk', slug: 'audio/encoded-audio-chunk' },
+						{ label: 'AudioData', slug: 'audio/audio-data' },
+						{ label: 'Codecs', slug: 'audio/codecs' },
+						{ label: 'Muxing', slug: 'audio/muxing' },
+						{ label: 'Playback', slug: 'audio/web-audio' },
 					],
 				},
 				{
@@ -40,10 +69,21 @@ export default defineConfig({
 				{
 					label: 'Design Patterns',
 					items: [
-						{ label: 'The Decoding Loop', slug: 'patterns/decoding-loop' },
-						{ label: 'Playback Architecture', slug: 'patterns/playback' },
+						{ label: 'Common use cases', slug: 'patterns/use-cases' },
+						{ label: 'Video Player', slug: 'patterns/playback' },
 						{ label: 'Transcoding', slug: 'patterns/transcoding' },
+						{ label: 'Video Editing', slug: 'patterns/editing' },
 						{ label: 'Live Streaming', slug: 'patterns/live-streaming' },
+					],
+				},
+
+				{
+					label: 'Media Bunny',
+					items: [
+						{ label: 'Video Player', slug: 'media-bunny/playback' },
+						{ label: 'Transcoding', slug: 'media-bunny/transcoding' },
+						{ label: 'Video Editing', slug: 'media-bunny/editing' },
+						{ label: 'Live Streaming', slug: 'media-bunny/live-streaming' },
 					],
 				},
 				{
