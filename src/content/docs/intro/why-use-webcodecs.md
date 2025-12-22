@@ -62,7 +62,7 @@ If you search "Convert WebM to MP4", many search engines will show results like 
 
 **WebCodecs option**:
 
-Compared to both, consider [Remotion convert](https://www.remotion.dev/convert), a simple webcodecs based video conversion tool. There is nothing to install, no ads, it has a great UI/UX and it just works.
+Compared to both, consider [Remotion convert](https://www.remotion.dev/convert), a simple webcodecs based video conversion tool. There is nothing to install, it has no ads, it has a great UI/UX and it just works.
 
 
 ![](/src/assets/content/basics/what-is-webcodecs/webcodecs.png)

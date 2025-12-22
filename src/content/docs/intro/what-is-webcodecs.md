@@ -72,16 +72,12 @@ encoder.encode(<VideoFrame> rawVideoFrame);
 
 ##### There's a lot more to it
 
-That looks simple enough, but there's quite bit more to it. Just a few of the biggest items:
-
-* Getting `EncodingVideoChunk` objects from an actual video file is a whole other thing called demuxing, and WebCodecs doesn't help with that
-* `VideoFrame` objects have a large memory footprint, and if you don't mange them properly, it may crash the browser.
-* The same encoding settings may not work on different devices or different browsers
-* Decoders and Encoders can fail, and you need to manage their state and lifecycle
+So the core of WebCodecs is to expose interfaces around a `VideoDecoder` and `VideoEncoder`, and while those classes look simple enough, there's [a lot more]((../reality-check)) to take into account, from basics like working with audio, how to get `EncodedVideoChunks` objects in the first place, to all the architecture you'd need to create actually build a [video player](../../patterns/playback) or [transcoding pipeline](../../patterns/transcoding).
 
 So while a hello-world tutorial for WebCodecs can fit in less than 30 lines of code, building a production-level WebCodecs requires a lot more code, a lot more process management and a lot more edge case and error handling.
 
 The rest of this guide is designed to cover those complexities, and close the gap between hello world demos and production-level video processing apps.
+
 
 <!--
 
