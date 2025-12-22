@@ -68,3 +68,11 @@ Compared to both, consider [Remotion convert](https://www.remotion.dev/convert),
 ![](/src/assets/content/basics/what-is-webcodecs/webcodecs.png)
 
 By combining the best of both worlds, WebCodecs enables building video experiences that are simple to use, good quality and essentially free to operate.
+
+
+
+### What WebCodecs replaces
+
+Some developers had realized the potential of client-side video processing before Browser vendors even came up with WebCodecs. Previously many tools used [ffmpeg.js](https://github.com/Kagami/ffmpeg.js/), a port of ffmpeg to the browser, and run via Web Assembly, to handle video decoding in the browser.
+
+Becuase these were 'hacks', that also didn't take full advantage of hardware encoding/decoding, the performance was much worse than WebCodecs, and so WebCodecs was conceieved in part to give developers an official, high-performance option to do what many were already doing via cumbersome workarounds.
