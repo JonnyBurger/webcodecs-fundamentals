@@ -3,7 +3,9 @@ title: What is WebCodecs?
 description: Beyond the spec - understanding the WebCodecs API and its place in web video engineering
 ---
 
-WebCodecs is a browser API that enables low level control over video encoding and decoding of video files and streams on the client, allowing frontend application developers to manipulate video in the browser on a per-frame basis.
+WebCodecs is a browser API that enables low level control over video encoding and decoding of video files and streams on the client, allowing frontend application developers to manipulate video in the browser on a per-frame basis. 
+
+While there are other WebAPIs that work with videos, like the [HTML5VideoElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement), [WebRTC](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API), [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) and [MediaSource](https://developer.mozilla.org/en-US/docs/Web/API/Media_Source_Extensions_API) APIs, none enable the low-level control that WebCodecs does, which is critical for tasks like Video Editing, Transcoding and high-performance streaming.
  
 
 At it's most fundamental level, the WebCodecs API can boil down to two interfaces that the browser exposes: [VideoDecoder](https://developer.mozilla.org/en-US/docs/Web/API/VideoDecoder) and [VideoEncoder](https://developer.mozilla.org/en-US/docs/Web/API/VideoEncoder), which you can use to decode and encode video respectively, as well as two "Data types":  [EncodedVideoChunk](https://developer.mozilla.org/en-US/docs/Web/API/EncodedVideoChunk) and [VideoFrame](https://developer.mozilla.org/en-US/docs/Web/API/VideoFrame), which represent encoded vs raw video data respectively. We'll get to audio later.
@@ -78,6 +80,8 @@ That looks simple enough, but there's quite bit more to it. Just a few of the bi
 * Decoders and Encoders can fail, and you need to manage their state and lifecycle
 
 So while a hello-world tutorial for WebCodecs can fit in less than 30 lines of code, building a production-level WebCodecs requires a lot more code, a lot more process management and a lot more edge case and error handling.
+
+The rest of this guide is designed to cover those complexities, and close the gap between hello world demos and production-level video processing apps.
 
 <!--
 
