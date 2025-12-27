@@ -77,6 +77,7 @@
         console.log(`Cluster`, cluster);
 
         let tsEl;
+        let k;
 
         for (let j =i; j < ebmlElms.length; j++){
 
@@ -84,11 +85,56 @@
 
           if(elJ.name === 'Timestamp'){
             tsEl = elJ;
+            k = j;
             break;
           }
         }
 
         console.log(`TS El`, tsEl);
+
+        const tsOffset = tsEl.value;
+
+        if(tsEl && k){
+
+          for (let j =(k+1); j < ebmlElms.length; j++){
+
+            const elJ = ebmlElms[j];
+
+            if(elJ.name !== 'SimpleBlock'){
+              break;
+            }
+
+            const block = elJ;
+
+            const data = new Uint8Array(block.data);
+            let offset = 0;
+
+            // Read track number (VINT)
+            const { value: trackNum, size } = readVInt(data, offset);
+            offset += size;
+
+            // Read relative timestamp (int16, big-endian)
+            const relativeTs = (data[offset] << 8) | data[offset + 1];
+            offset += 2;
+
+            // Read flags
+            const flags = data[offset];
+            offset += 1;
+
+            const isKeyframe = (flags & 0x80) !== 0;
+
+            // Extract frame data
+            const frameData = data.slice(offset);
+
+            console.log(`Block`, block)
+
+
+            console.log(tsEl.value)
+          }
+
+
+        }
+
 
       }
 
