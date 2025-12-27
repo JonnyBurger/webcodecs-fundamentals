@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebM Parser Demo</title>
+  <script src="webm-parser/src/index.js" type="module" ></script>
+</head>
+<body>
+  <h1>WebM Parser Demo</h1>
+  <p>Upload a WebM file to parse its metadata and extract encoded chunks.</p>
+
+  <div class="panel">
+    <input type="file" id="fileInput" accept=".webm" />
+    <button onclick="parseWebM()">Parse WebM File</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="container">
+    <div class="panel">
+      <h2>Metadata</h2>
+      <div id="metadata">
+        <p style="color: #999;">No file loaded</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Encoded Chunks</h2>
+      <div id="chunks">
+        <p style="color: #999;">No file loaded</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+
+    
+    function parseWebMFile(buffer) {
+
+      console.log("Buffer");
+
+      console.log(buffer)
+
+
+
+      const webm = new WebM();
+
+      webm.parse(buffer);
+
+      console.log("WebM");
+      console.log(webm)
+
+      
+ 
+    }
+
+
+    async function parseWebM() {
+      const file = document.getElementById('fileInput').files[0];
+      const statusEl = document.getElementById('status');
+      
+   
+      
+      const buffer = await file.arrayBuffer();
+
+      console.log("Buffer", buffer)
+
+      parseWebMFile(buffer)
+    }
+
+
+  </script>
+</body>
+</html>
