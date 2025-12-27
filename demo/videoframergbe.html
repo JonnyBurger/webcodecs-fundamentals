@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VideoFrame from Raw RGBA Data</title>
+  <style>
+    body {
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    #canvas {
+      border: 2px solid #333;
+      background: white;
+      margin-bottom: 20px;
+    }
+    #stats {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>VideoFrame Construction from Raw RGBA Data</h1>
+  <canvas id="canvas" width="640" height="480"></canvas>
+  <div id="stats">
+    <div>Frame: <span id="frameNum">0</span></div>
+    <div>Intensity: <span id="intensity">0</span></div>
+    <div>FPS: <span id="fps">0</span></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statsFrame = document.getElementById('frameNum');
+    const statsIntensity = document.getElementById('intensity');
+    const statsFps = document.getElementById('fps');
+
+    const width = 1920;
+    const height = 1080;
+    const frameRate = 30;
+    const frameDuration = 1000 / frameRate;
+
+    let frameNumber = 0;
+    let lastFrameTime = 0;
+    let fpsCounter = 0;
+    let fpsTime = 0;
+
+    function renderFrame(timestamp) {
+      if (timestamp - lastFrameTime < frameDuration) {
+        requestAnimationFrame(renderFrame);
+        return;
+      }
+
+      lastFrameTime = timestamp;
+
+      // Create RGBA buffer (4 bytes per pixel)
+      const pixelCount = width * height;
+      const buffer = new ArrayBuffer(pixelCount * 4);
+      const data = new Uint8ClampedArray(buffer);
+
+      /*
+      // Oscillate between 0 and 255 over time (2-second cycle)
+      const cycle = frameNumber % (frameRate * 2);
+      const intensity = Math.floor((cycle / (frameRate * 2)) * 255);
+
+      // Fill entire frame with solid color
+      for (let i = 0; i < pixelCount; i++) {
+        const offset = i * 4;
+        data[offset + 0] = intensity;     // Red
+        data[offset + 1] = intensity;     // Green
+        data[offset + 2] = intensity;     // Blue
+        data[offset + 3] = 255;           // Alpha (always opaque)
+      }
+*/
+      // Create VideoFrame from raw pixel data
+      const videoFrame = new VideoFrame(
+        data,
+        {
+          format: "RGBA",
+          codedHeight: height,
+          codedWidth: width,
+          timestamp: frameNumber * (1e6 / frameRate),
+        }
+      );
+
+      // Paint VideoFrame to canvas for visualization
+      ctx.drawImage(videoFrame, 0, 0);
+
+      // Update stats
+      statsFrame.textContent = frameNumber;
+      statsIntensity.textContent = intensity;
+
+      // Calculate FPS
+      fpsCounter++;
+      if (timestamp - fpsTime > 1000) {
+        statsFps.textContent = fpsCounter;
+        fpsCounter = 0;
+        fpsTime = timestamp;
+      }
+
+      videoFrame.close();
+      frameNumber++;
+
+      requestAnimationFrame(renderFrame);
+    }
+
+    requestAnimationFrame(renderFrame);
+  </script>
+</body>
+</html>

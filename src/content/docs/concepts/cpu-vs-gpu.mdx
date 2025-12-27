@@ -35,9 +35,14 @@ But actually, it's not just those APIs, many Web APIs that deal with graphics us
 
 The reason that all the video-related Web APIs use the graphics card is because video encoding/decoding is usually done by specific encoder/decoder hardware sub-module located within the graphics card (seperate from the 'normal' graphics processor used for graphics & ML).
 
-An accurate view of a generalized consumer device system might look like this:
+An mostly* accurate view of a generalized consumer device system might look like this:
 
 ![](/src/assets/content/basics/cpu/system.svg)
+
+
+\*  In reality, integrated graphics cards actually do use the same physical RAM device as the CPU, but the operating system reserves a portion for the graphics card, and the graphics card manages the memory seperately, and often use different cacheing/storage mechanisms so that, for practical purposes, GPU memory and CPU memory act as seperate stores, requiring CPU cycles and data copies to move data between GPU and the CPU [[1](https://people.ece.ubc.ca/sasha/papers/ismm-2017.pdf)][[2](https://gpuweb.github.io/gpuweb/explainer/#:~:text=2.2.&text=When%20using%20a%20discrete%20GPU,process%20and%20the%20content%20process.)][[3](https://www.w3.org/2021/03/media-production-workshop/talks/paul-adenot-webcodecs-performance.html)].
+
+
 
 
 #### What is on the Graphics Card

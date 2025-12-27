@@ -1,0 +1,262 @@
+---
+title: VideoFrame
+description: Why WebCodecs is harder than it looks
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Video is essentially just a series of images (called frames) with timestamps, indicating which frame to show at a given time during video playback.
+
+![](/src/assets/content/basics/video-frames/bbb-fames.png)
+
+The javascript `VideoFrame` class, likewise, is represented as a combination of pixel data (like RGB values) and some metadata (including the timestamp). <mark>Keep in mind that VideoFrame and other WebCodecs interfaces represent time in microseconds.</mark>
+![](/src//assets//content//basics/video-frames/video-frame.svg)
+
+
+A `VideoFrame` has all the information needed to render or display the image in a `<canvas>`, or to access raw pixel data (e.g. for AI model inference), but can't directly be stored in a normal video file.
+
+An `EncodedVideoChunk` can't directly be used to render or display an image, but you can directly read them from a video file, or write them to a video file.
+
+
+![](/src/assets/content/basics/what-is-webcodecs/simplified.svg)
+
+The whole point of WebCodecs is to facilitate the transformation between `EncodedVideoChunk` and `VideoFrame` objects, and and you would use `VideoFrame` objects when you need access to the raw video data (e.g. rendering a video to a canvas).
+
+
+### Getting VideoFrames
+
+
+##### Decoding
+
+
+The primary way to get a `VideoFrame` is directly from `VideoDecoder`
+
+```typescript
+const chunks = <EncodedVideoChunk[]> await getChunks(file);
+
+const decoder = new VideoDecoder({
+    output(frame: VideoFrame) {
+        //Do something with the frame
+    },
+    error(e) {}
+});
+
+decoder.configure(/* Decoder config */);
+
+for (const chunk of chunks){
+    deocder.decode(chunks)
+}
+```
+
+This will have all the metadata pre-populated as it's coming from the source video.
+
+##### Video Element
+
+
+You can also grab video frames directly from a `<video>` element.
+
+```typescript
+const video = document.createElement('video');
+video.src = 'big-buck-bunny.mp4'
+
+video.oncanplaythrough = function(){
+    video.play();
+    function grabFrame(){
+        const frame = new VideoFrame(video);
+        video.requestVideoFrameCallback(grabFrame)
+    }
+    video.requestVideoFrameCallback(grabFrame)
+}
+```
+
+Like with the `VideoDecoder`, when grabbing frames from a `<video>`, it will have all the metadata prepopulated from the source video.
+
+##### Canvas Element
+
+You can also construct a `VideoFrame` from a `<canvas>`, which lets you create custom rendering pipelines or construct artifical video.
+
+
+```typescript
+const canvas = new OffscreenCanvas(640, 480);
+const ctx = canvas.getContext('2d');
+
+let frameNumber = 0;
+
+function renderFrame(timestamp) {
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillText(`Frame ${frameNumber}`, canvas.width / 2, canvas.height / 2);
+
+  
+  const videoFrame = new VideoFrame(canvas, {
+    timestamp: frameNumber * (1e6 / 30), // 30fps, stored in microseconds
+  });
+
+  frameNumber++;
+  requestAnimationFrame(renderFrame);
+}
+
+requestAnimationFrame(renderFrame);
+```
+
+In this case though, you do need to suppy the timestamp as the `<canvas>` just has pixel data, though you can also specify other metadata, such as the *duration*, *format* etc...
+
+
+### Using Video Frames
+
+Once you have a `VideoFrame`, there are two ways to use them.
+
+
+##### Encoding
+
+`VideoFrame` objects are the only input you can use when using WebCodecs to encode video, so if you want to encode video in the browser, you need your source video data as `VideoFrame`. Here's an example of encoding a canvas animation via `VideoFrame` objects.
+
+
+
+```typescript
+
+const canvas = new OffscreenCanvas(640, 480);
+const ctx = canvas.getContext('2d');
+let frameNumber = 0;
+const encoded_chunks = [];
+
+const encoder = new VideoEncoder({
+    output: function(chunk){
+        encoded_chunks.push(chunk)
+        if(encoded_chunks.length === 150) // Done encoding, time to mux
+    },
+    error: function(e){console.log(e)}
+})
+
+encoder.configure({ 
+    codec: 'vp09.00.41.08.00',  
+    width: canvas.width, 
+    height: canvas.height, 
+    bitrate: 1e6, 
+    framerate: 30 
+})
+
+function renderFrame(timestamp) {
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillText(`Frame ${frameNumber}`, canvas.width / 2, canvas.height / 2);
+
+  const videoFrame = new VideoFrame(canvas, {
+    timestamp: frameNumber * (1e6 / 30), // 30fps, stored in microseconds
+  });
+
+  encoder.encode(videoFrame, {keyFrame: frameNumber%60==0})
+  videoFrame.close();
+  
+  frameNumber++;
+  if(frameNumber < 150) requestAnimationFrame(renderFrame);
+  else encoder.flush();
+
+}
+
+requestAnimationFrame(renderFrame);
+
+```
+
+
+##### Rendering
+
+You can also render a `VideoFrame` to canvas. Here is the player example we showed previously where you are rendering video to a canvas.
+
+```typescript
+
+
+
+async function playFile(file: File){
+
+    const chunks = <EncodedVideoChunk[]> await getChunks(file);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const decoder = new VideoDecoder({
+        output(frame: VideoFrame) {
+            ctx.drawImage(frame, 0, 0);
+            frame.close()
+        },
+        error(e) {}
+    });
+
+    const decoderConfig = <VideoDecoderConfig> getDecoderConfig(file)
+    decoder.configure(decoderConfig);
+
+    for (const chunk of chunks){
+        deocder.decode(chunks)
+    }
+
+}
+
+```
+
+
+### Memory
+
+As mentioned [previously](../../intro/what-are-codecs), raw video data (and specifically individual `VideoFrame`) objects take up a lot of memory, with a single 1080p frame taking up ~ 8 MB.
+
+Most graphics cards usually have  2-4 GB of video memory (integrated graphics cards reserve a portion of system RAM), meaning a typical device can only hold several hundred 1080p video frames (~20 seconds of raw video data) in memory at a given moment.
+
+When playing back a 1 hour 1080p video in a `<video>` tag, the browser will render frames progressively, displaying each frame as needed, and discarding frames immediately afterwards to free up memory, so that you could watch a 1 hour video with browser only keeping several seconds worth of actual raw, renderable video data in memory at a given time.
+
+
+When working in WebCodecs, the browser gives you much lower level control over `VideoFrame` objects - when to decode them, how to buffer them, how to create them etc..., but you are also responsible for memory management.
+
+##### Closing Frames
+
+Fortunately, it's pretty easy to 'discard' a frame, just use the `.close()` method on each frame after you are done, as in the frame callback in the simplified playback example.
+
+```typescript
+const decoder = new VideoDecoder({
+    output(frame: VideoFrame) {
+        ctx.drawImage(frame, 0, 0);
+        frame.close()
+    },
+    error(e) {}
+});
+```
+
+Calling `close()` means the video memory is freed, and you can no longer use the `VideoFrame` object for anything else. You can't 
+
+1. Render a frame,
+2. Then call `close()`
+3. Then send the frame to an encoder.
+
+
+But you can
+
+1. Render a frame,
+2. Then send the frame to an encoder.
+3. Then call `close()`
+
+
+`close()` is the last you should do with a `VideoFrame` , after you are done using it, and in whatever processing pipeline, you need to remember to close frames after you are done, and manage memory yourself.
+
+<Aside>Keep in mind that VideoFrame objects reside in graphics memory, and sending data to/from CPU memory incurs memory copy operations and performance overhead [[1](../../concepts/cpu-vs-gpu)] </Aside>
+
+
+##### Transferring
+
+Unlike `File` objects, `VideoFrame` objects are not references to data, they are tied to actual graphics memory. When you send a `VideoFrame` from the main thread to a worker (or vice-versa), you need to actually transfer them.
+
+
+```typescript
+
+
+const worker = new Worker('worker.js');
+
+const decoder = new VideoDecoder({
+    output(frame: VideoFrame) {
+        worker.postMessage({frame}, [frame])
+    },
+    error(e) {}
+});
+
+
+```
+
+This avoids an expensive memory copy operation and the need to close frame on the source thread, as the data gets transferred to destination/worker thread.
+
+As we'll cover in [player architecture](../../patterns/playback), this is a standard pattern when using multiple video decoders in parallel to composite multiple video sources together.

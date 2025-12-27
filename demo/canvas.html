@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VideoFrame from Raw RGBA Data</title>
+  <style>
+    body {
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    #canvas {
+      border: 2px solid #333;
+      background: white;
+      margin-bottom: 20px;
+    }
+    #stats {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>VideoFrame Construction from Raw RGBA Data</h1>
+  <canvas id="canvas" width="640" height="480"></canvas>
+  <div id="stats">
+    <div>Frame: <span id="frameNum">0</span></div>
+    <div>Intensity: <span id="intensity">0</span></div>
+    <div>FPS: <span id="fps">0</span></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statsFrame = document.getElementById('frameNum');
+    const statsIntensity = document.getElementById('intensity');
+    const statsFps = document.getElementById('fps');
+
+    const width = 640;
+    const height = 480;
+    const frameRate = 30;
+    const frameDuration = 1000 / frameRate;
+
+    let frameNumber = 0;
+
+    const chunks = [];
+
+    const encoder = new VideoEncoder({
+
+      output: function(chunk){
+
+        chunks.push(chunk)
+
+        if(chunks.length === 150) finish();
+
+      },
+
+      error: function(e){console.log(e)}
+
+    })
+
+    encoder.configure({
+        codec: 'vp09.00.41.08.00',  width, height,
+        bitrate: 1e6,
+        framerate: 30
+    })
+
+function finish(){
+  console.log("chunks", chunks);
+}
+
+function renderFrame(timestamp) {
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillText(`Frame ${frameNumber}`, canvas.width / 2, canvas.height / 2);
+
+  
+  const videoFrame = new VideoFrame(canvas, {
+    timestamp: frameNumber * (1e6 / 30), // 30fps, stored in microseconds
+  });
+
+
+  encoder.encode(videoFrame, {keyFrame: frameNumber%60==0})
+  videoFrame.close();
+  
+
+  frameNumber++;
+  if(frameNumber < 150) requestAnimationFrame(renderFrame);
+  else encoder.flush();
+
+
+}
+
+
+
+requestAnimationFrame(renderFrame);
+  </script>
+</body>
+</html>
