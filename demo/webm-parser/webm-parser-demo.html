@@ -46,7 +46,7 @@
 
       const webm = new WebM();
 
-      webm.parse(buffer);
+      webm.parse(new Uint8Array(buffer));
 
       console.log("WebM");
       console.log(webm)
