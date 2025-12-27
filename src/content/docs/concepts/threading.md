@@ -3,7 +3,7 @@ title: Offscreen Processing
 description: Main thread vs workers and transferable objects
 ---
 
-When doing video processing in the browser, most of the processing should be done in a worker. This may already be obvious to many of you, but if not, I'll provide a quick explanation of how processing in a worker thread is different from the main thread, which workloads to move to a worker thread and why it's important.
+When doing video processing in the browser, most of the processing should be done in a worker. This may already be obvious to many of you, and if so feel free to go to the [next section](../file-handling) but if not, I'll provide a quick explanation of workers, offscreen processing for video processing, and why it's important.
 
 
 ### CPU Cores and Threads
