@@ -20,12 +20,9 @@
 
   <script>
 
-    console.log("ebml", EBML)
-
 
     const decoder = new EBML.Decoder();
 
-    console.log("Decoder", decoder)
 
     function readVInt(data, offset) {
       const firstByte = data[offset];
@@ -57,7 +54,7 @@
 
 
     
-    async function decode(chunks, desc){
+    async function decode(chunks, track){
 
 
       const canvas = document.getElementById('canvas');
@@ -74,9 +71,8 @@
 
 
       decoder.configure({
-
         codec: 'vp09.00.10.08',
-        //description: desc
+        description: track.description
       })
 
       for(chunk of chunks){
@@ -102,7 +98,7 @@
 
       const chunks = getChunks(ebmlElms, videoTrack);
 
-      decode(chunks);
+      decode(chunks, videoTrack);
 
 
       
@@ -136,7 +132,7 @@
                 if (trackEl.value==1) track.type ='video'; // 1=video, 2=audio
                 else if(trackEl.value === 2) track.type = 'audio';
               } else if (trackEl.name === 'CodecPrivate') {
-                track.codecPrivate = trackEl.data; // Configuration data for decoder
+                track.description = trackEl.data; // Configuration data for decoder
               }
             }
 
