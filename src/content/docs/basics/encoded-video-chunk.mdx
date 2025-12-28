@@ -164,8 +164,26 @@ self.addEventListener('message', (e) => {
 
 As you can see, encoding the video reduces the bandwidth by 100x (9000 kB/s vs 9 kB/s). 
 
+#### Visualizing the difference
+
+
+<video width="640" height="480" loop muted autoplay>
+  <source src="/src/assets/content/basics/chunks/raw-frames-animation.webm" type="video/webm" />
+  Your browser does not support the video tag.
+</video>
+
+<video width="640" height="480" loop muted autoplay>
+  <source src="/src/assets/content/basics/chunks/encoded-chunks-animation.webm" type="video/webm" />
+  Your browser does not support the video tag.
+</video>
+
+
+
+
 
 In the real world, if you are actually streaming 4K video, the raw stream would be ~7 Gigabits per second (no home internet connection would be able to keep up), while an encoded stream would be around 10 Megabits per second, which is again, ~100x smaller, and something that many home internet connections would handle without issue.
+
+
 
 
 ## Key Frames
