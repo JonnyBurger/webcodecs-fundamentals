@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebM Parser Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/ts-ebml@3.0.2/dist/EBML.min.js"></script>
+</head>
+<body>
+  <h1>WebM Parser Demo</h1>
+  <p>Demonstrating WebM demuxing and video decoding.</p>
+
+
+
+  <p>Video</p>
+  <video src="hero-small.webm" controls muted> </video>
+
+  <p>Web-Demuxer</p>
+  <canvas width="320" height="180" id="canvas"></canvas>
+
+  <script type="module">
+  import { WebDemuxer } from 'https://cdn.jsdelivr.net/npm/web-demuxer/+esm';
+
+  const demuxer = new WebDemuxer({
+    wasmFilePath: "https://cdn.jsdelivr.net/npm/web-demuxer@latest/dist/wasm-files/web-demuxer.wasm",
+  });
+
+
+ 
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Parse WebM file
+    const response = await fetch('hero-small.webm');
+    const buffer = await response.arrayBuffer();
+
+    const file = new File([buffer], 'hero-small.webm', {type: 'video/webm'});
+
+    await demuxer.load(file);
+
+   const mediaInfo = await demuxer.getMediaInfo();
+
+
+   const videoTrack = mediaInfo.streams.filter((s)=>s.codec_type_string === 'video')[0];
+
+
+
+
+
+   async function getChunks(start=0, end=undefined){
+
+    const reader = demuxer.read('video', start, end).getReader()
+
+    const chunks = [];
+
+     return new Promise(function(resolve){
+
+      reader.read().then(async function processPacket({ done, value }) {
+        if(value) chunks.push(value);
+        if(done) return resolve(chunks);
+        return reader.read().then(processPacket)
+      });
+
+    });
+
+   }
+
+   const chunks = await getChunks();
+
+
+
+ const decoder = new VideoDecoder({
+      output: (frame) => {
+        ctx.drawImage(frame, 0, 0);
+        frame.close();
+      },
+      error: (e) => console.error(e)
+    });
+
+    decoder.configure({
+      codec: videoTrack.codec_string
+    });
+
+
+    for (const chunk of chunks) {
+      decoder.decode(chunk);
+    }
+
+    await decoder.flush();
+
+
+//   
+
+      //  const videoStream = mediaInfo.streams.find(stream => stream.codec_type_string === 'video');
+
+//           
+ /*
+  
+
+
+
+
+
+
+ */
+    
+ /*
+    console.log('Chunks:', chunks.length);
+
+    // Decode video chunks
+  
+
+
+    */
+  </script>
+</body>
+</html>
