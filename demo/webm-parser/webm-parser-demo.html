@@ -8,12 +8,15 @@
 
 
 
+
+
 </head>
 <body>
   <h1>WebM Parser Demo</h1>
   <p>Upload a WebM file to parse its metadata and extract encoded chunks.</p>
 
 
+  <canvas width="320" height="180" id="canvas"></canvas>
 
   <script>
 
@@ -48,7 +51,48 @@
       }
 
       return { value, size };
+
     }
+
+
+
+    
+    async function decode(chunks, desc){
+
+
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+
+      const decoder = new VideoDecoder({
+        output: function(frame){
+
+      
+
+          ctx.drawImage(frame, 0, 0)
+          frame.close();
+        },
+        error: function(e){console.log(e)}
+      })
+
+
+      decoder.configure({
+
+        codec: 'vp09.00.10.08',
+        description: desc
+      })
+
+      for(chunk of chunks){
+
+
+        decoder.decode(chunk)
+      }
+
+
+
+    }
+
+    
 
     function parseWebMFile(buffer) {
       const data = new Uint8Array(buffer);
@@ -65,10 +109,31 @@
 
 
 
+      const desc = getDescription(ebmlElms)
+
+
+
+      decode(chunks, desc);
+
+
       
 
 
       
+
+    }
+
+    function getDescription(ebmlElms){
+
+      for(let i=0; i< ebmlElms.length; i++){
+        const elI = ebmlElms[i];
+
+        if(elI.name === 'CodecPrivate'){
+
+          return elI.value;
+        }
+
+      }
 
     }
 
@@ -154,13 +219,14 @@
 
                 type: isKeyframe? "key" : "delta",
                 timestamp: blockTimestamp*1e3,
-                data,
+                data: frameData,
                 duration: 42*1e3
               })
 
+              console.log(isKeyframe)
+              console.log("Data", data)
+              
 
-              console.log("Block data", block.data);
-              console.log("Block timestamp", blockTimestamp)
 
 
 
