@@ -165,11 +165,7 @@ self.addEventListener('message', (e) => {
 As you can see, encoding the video reduces the bandwidth by 100x (9000 kB/s vs 9 kB/s). 
 
 
-In the real world, if you are actually streaming 1080p video, the encoded and raw streams would be ~30x bigger.
-
+In the real world, if you are actually streaming 4K video, the raw stream would be ~7 Gigabits per second (no home internet connection would be able to keep up), while an encoded stream would be around 10 Megabits per second, which is again, ~100x smaller, and something that many home internet connections would handle without issue.
 
 
 ## Key Frames
--- Key Frames vs Delta Frames, order matters
--- Delta frames
-
