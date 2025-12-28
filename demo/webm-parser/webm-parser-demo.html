@@ -66,9 +66,6 @@
 
       const decoder = new VideoDecoder({
         output: function(frame){
-
-      
-
           ctx.drawImage(frame, 0, 0)
           frame.close();
         },
@@ -83,8 +80,6 @@
       })
 
       for(chunk of chunks){
-
-
         decoder.decode(chunk)
       }
 
@@ -101,25 +96,11 @@
 
 
 
-      console.log(ebmlElms)
-
 
       const tracks = getTrackInfo(ebmlElms);
-
-      console.log(`Tracks`, tracks);
-
-
       const videoTrack = tracks.filter((track)=>track.type=== 'video')[0];
 
-      console.log(`Track`, videoTrack)
-
-
       const chunks = getChunks(ebmlElms, videoTrack);
-
-
-    
-
-      console.log("Chunks", chunks)
 
       decode(chunks);
 
@@ -272,7 +253,6 @@
 
       const buffer = await file.arrayBuffer();
 
-      console.log("Buffer", buffer)
 
       parseWebMFile(buffer)
 
