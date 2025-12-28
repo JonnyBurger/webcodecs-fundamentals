@@ -5,9 +5,14 @@ const height = 240;
 const frameRate = 30;
 let frameNumber = 0;
 let encoder;
+let sourceCanvas;
+let sourceCtx;
 
 self.addEventListener('message', (e) => {
-  if (e.data.type === 'start') {
+  if (e.data.type === 'init') {
+    sourceCanvas = e.data.canvas;
+    sourceCtx = sourceCanvas.getContext('2d');
+  } else if (e.data.type === 'start') {
     startEncoding();
   }
 });
@@ -36,20 +41,17 @@ function startEncoding() {
 }
 
 function generateFrames() {
-  const canvas = new OffscreenCanvas(width, height);
-  const ctx = canvas.getContext('2d');
-
   function render() {
-    // Draw frame
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, width, height);
+    // Draw frame to source canvas
+    sourceCtx.fillStyle = '#000';
+    sourceCtx.fillRect(0, 0, width, height);
 
-    ctx.fillStyle = '#fff';
-    ctx.font = '24px monospace';
-    ctx.fillText(`Frame ${frameNumber}`, 20, height / 2);
+    sourceCtx.fillStyle = '#fff';
+    sourceCtx.font = '24px monospace';
+    sourceCtx.fillText(`Frame ${frameNumber}`, 20, height / 2);
 
-    // Create VideoFrame from canvas
-    const videoFrame = new VideoFrame(canvas, {
+    // Create VideoFrame from source canvas
+    const videoFrame = new VideoFrame(sourceCanvas, {
       timestamp: frameNumber * (1e6 / frameRate)
     });
 

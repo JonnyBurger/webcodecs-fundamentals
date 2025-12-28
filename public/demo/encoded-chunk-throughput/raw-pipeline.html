@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raw Pipeline</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .panel {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    canvas {
+      border: 1px solid #ccc;
+      display: block;
+    }
+    .stats {
+      margin-top: 10px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .stats div {
+      margin: 4px 0;
+    }
+    .highlight {
+      font-weight: bold;
+      color: #007bff;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 20px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .controls .stats {
+      display: flex;
+      gap: 20px;
+      font-size: 12px;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="controls">
+    <button id="startBtn">Start</button>
+    <div class="stats">
+      <div>Frames: <span id="frames" class="highlight">0</span></div>
+      <div>Data: <span id="data" class="highlight">0 KB</span></div>
+      <div>Throughput: <span id="throughput" class="highlight">0 KB/s</span></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="panel">
+      <h2>Source Worker</h2>
+      <canvas id="sourceCanvas" width="320" height="240"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Dest Worker</h2>
+      <canvas id="destCanvas" width="320" height="240"></canvas>
+    </div>
+  </div>
+
+  <script type="module">
+    const sourceCanvas = document.getElementById('sourceCanvas');
+    const destCanvas = document.getElementById('destCanvas');
+    const startBtn = document.getElementById('startBtn');
+
+    const framesEl = document.getElementById('frames');
+    const dataEl = document.getElementById('data');
+    const throughputEl = document.getElementById('throughput');
+
+    let stats = { frames: 0, bytesTransferred: 0, startTime: null };
+
+    const sourceOffscreen = sourceCanvas.transferControlToOffscreen();
+    const destOffscreen = destCanvas.transferControlToOffscreen();
+
+    const rawSourceWorker = new Worker('./raw-source-worker.js');
+    const rawRendererWorker = new Worker('./raw-renderer-worker.js');
+
+    // Setup source canvas in generator worker
+    rawSourceWorker.postMessage({ type: 'init', canvas: sourceOffscreen }, [sourceOffscreen]);
+
+    // Setup renderer worker with destination canvas
+    rawRendererWorker.postMessage({ type: 'init', canvas: destOffscreen }, [destOffscreen]);
+
+    // Raw source worker sends VideoFrames
+    rawSourceWorker.addEventListener('message', (e) => {
+      if (e.data.type === 'frame') {
+        const frame = e.data.frame;
+
+        if (!stats.startTime) stats.startTime = Date.now();
+
+        stats.frames++;
+        // VideoFrame size estimate: width * height * 4 bytes (RGBA)
+        stats.bytesTransferred += frame.codedWidth * frame.codedHeight * 4;
+
+        // Forward to renderer worker
+        rawRendererWorker.postMessage({ type: 'render', frame }, [frame]);
+
+        updateStats();
+      }
+    });
+
+    function updateStats() {
+      const elapsed = (Date.now() - stats.startTime) / 1000;
+      framesEl.textContent = stats.frames;
+      dataEl.textContent = (stats.bytesTransferred / 1024).toFixed(2) + ' KB';
+      throughputEl.textContent = (stats.bytesTransferred / 1024 / elapsed).toFixed(2) + ' KB/s';
+    }
+
+    startBtn.addEventListener('click', () => {
+      startBtn.disabled = true;
+      stats = { frames: 0, bytesTransferred: 0, startTime: Date.now() };
+      rawSourceWorker.postMessage({ type: 'start' });
+    });
+  </script>
+</body>
+</html>
