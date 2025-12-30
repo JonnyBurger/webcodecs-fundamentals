@@ -309,10 +309,11 @@
         </div>
 
         <div class="controls">
-            <button id="runTestsBtn" onclick="runTests()">Run Tests</button>
-            <button id="stopTestsBtn" onclick="stopTests()" disabled>Stop Testing</button>
-            <button class="secondary" onclick="clearResults()">Clear Results</button>
-            <button class="secondary" onclick="exportResults()">Export Results</button>
+            <button id="showCodecsBtn">Show Codec Strings</button>
+            <button id="runTestsBtn" disabled>Run Tests</button>
+            <button id="stopTestsBtn" disabled>Stop Testing</button>
+            <button class="secondary" id="clearResultsBtn">Clear Results</button>
+            <button class="secondary" id="exportResultsBtn">Export Results</button>
         </div>
 
         <div class="stats">
@@ -411,6 +412,58 @@
         function updateCodecCount() {
             const codecs = getCodecStringsForTab(currentTab);
             document.getElementById('statTotal').textContent = codecs.length;
+        }
+
+        function showCodecStrings() {
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = '';
+
+            const codecs = getCodecStringsForTab(currentTab);
+
+            if (codecs.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #999;">
+                        No codec strings to display
+                    </div>
+                `;
+                return;
+            }
+
+            for (const codec of codecs) {
+                displayCodecString(codec);
+            }
+
+            // Enable run tests button after showing codecs
+            document.getElementById('runTestsBtn').disabled = false;
+        }
+
+        function displayCodecString(codec) {
+            const container = document.getElementById('resultsContainer');
+            const card = document.createElement('div');
+
+            let detailsHtml = '';
+            if (codec.family !== 'vp8') {
+                const details = [];
+                if (codec.profile) details.push(`Profile: ${codec.profile}`);
+                if (codec.level) details.push(`Level: ${codec.level}`);
+                if (codec.tier) details.push(`Tier: ${codec.tier}`);
+                if (codec.bitDepth) details.push(`Bit Depth: ${codec.bitDepth}`);
+                if (codec.chroma) details.push(`Chroma: ${codec.chroma}`);
+                if (codec.constraint) details.push(`Constraint: ${codec.constraint}`);
+
+                if (details.length > 0) {
+                    detailsHtml = `<div class="codec-details">${details.join(' • ')}</div>`;
+                }
+            }
+
+            card.className = 'result-card';
+            card.innerHTML = `
+                <div class="codec-string">${codec.string}</div>
+                ${detailsHtml}
+                <div class="status">Ready to test</div>
+            `;
+
+            container.appendChild(card);
         }
 
         async function testCodecString(codec) {
@@ -546,7 +599,7 @@
             results = [];
             document.getElementById('resultsContainer').innerHTML = `
                 <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #999;">
-                    Select a codec tab and click "Run Tests" to start
+                    Select a codec tab and click "Show Codec Strings" to start
                 </div>
             `;
             document.getElementById('statTested').textContent = '0';
@@ -554,6 +607,7 @@
             document.getElementById('statUnsupported').textContent = '0';
             document.getElementById('statProgress').textContent = '0%';
             document.getElementById('exportArea').value = '';
+            document.getElementById('runTestsBtn').disabled = true;
             updateCodecCount();
         }
 
@@ -589,11 +643,16 @@
             return 'Unknown';
         }
 
+        // Set up event listeners
+        document.getElementById('showCodecsBtn').addEventListener('click', showCodecStrings);
+        document.getElementById('runTestsBtn').addEventListener('click', runTests);
+        document.getElementById('stopTestsBtn').addEventListener('click', stopTests);
+        document.getElementById('clearResultsBtn').addEventListener('click', clearResults);
+        document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
+
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            updateDeviceInfo();
-            updateCodecCount();
-        });
+        updateDeviceInfo();
+        updateCodecCount();
 
         // Check WebCodecs support
         if (typeof VideoEncoder === 'undefined') {
