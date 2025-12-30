@@ -34,10 +34,16 @@
     console.log('Video track:', videoTrack);
     console.log('Chunks:', chunks.length);
 
+    let frames_rendered = 0;
     // Decode video chunks
     const decoder = new VideoDecoder({
       output: (frame) => {
         ctx.drawImage(frame, 0, 0);
+
+        frames_rendered++;
+
+        console.log(`Frames rendered ${frames_rendered}`)
+        
         frame.close();
       },
       error: (e) => console.error(e)
@@ -48,7 +54,7 @@
       description: videoTrack.description
     });
 
-    for (const chunk of chunks) {
+    for (const chunk of chunks.slice(0,100)) {
       decoder.decode(chunk);
     }
 
