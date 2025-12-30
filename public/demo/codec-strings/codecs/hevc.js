@@ -5,14 +5,22 @@
  * Reference: ISO/IEC 14496-15:2024 Section E.3
  * Reference: https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/codecs_parameter
  *
- * Format: hev1.{general_profile_space}{general_profile_idc}.{profile_compatibility}.{tier}{general_level_idc}.{constraint_flags}
+ * Format: {prefix}.{general_profile_space}{general_profile_idc}.{profile_compatibility}.{tier}{general_level_idc}.{constraint_flags}
  *
- * The codec string begins with either "hev1." or "hvc1." prefix:
- * - hev1: Parameter sets stored out-of-band (in decoder configuration record)
- * - hvc1: Parameter sets stored in-band (in the video stream)
+ * The codec string begins with either "hvc1." or "hev1." prefix:
+ * - hvc1: Parameter sets stored out-of-band (in MP4 container) - PREFERRED/MORE COMMON
+ *   - Stores parameter NAL units in the sample description boxes
+ *   - More standardized and compatible with most players
+ * - hev1: Parameter sets stored in-band (in the bitstream) and/or out-of-band
+ *   - Parameter sets can be in the stream itself
+ *   - More flexible but potentially less compatible
  *
- * According to ISO/IEC 14496-15 Section 8.4.1, the difference relates to
- * parameter set storage location in the container format.
+ * According to ISO/IEC 14496-15 Section 8.4.1, "Carriage of codec parameters
+ * in the SampleEntry is preferred, which corresponds to codec configurations
+ * such as 'avc1' and 'hvc1'."
+ *
+ * For comprehensive testing, we generate both prefixes to identify any
+ * browser/platform differences in parameter set handling.
  *
  * Four dot-separated fields follow the prefix:
  *
@@ -50,17 +58,14 @@
  * - Level 5.0: Up to 4096×2160 @ 25-100 Mbps (4K)
  * - Level 6.0: Up to 8192×4320 @ 60-240 Mbps (8K)
  *
- * Example: hev1.1.6.L120.B0
- * - hev1: Out-of-band parameter sets
- * - 1: Main Profile
- * - 6: Profile compatibility flags
- * - L120: Low tier, Level 4.0
- * - B0: Progressive source constraint
+ * Examples:
+ * - hvc1.1.6.L120.B0: hvc1 prefix, Main Profile, Low tier Level 4.0, Progressive
+ * - hev1.2.4.H150.B0: hev1 prefix, Main 10 Profile, High tier Level 5.0, Progressive
  *
  * Note: Using simplified common configurations based on MediaBunny reference
  * implementation for practical WebCodecs usage.
  *
- * Total variants: 84 (2 profiles × 21 tier/level combinations × 2 tiers)
+ * Total variants: 84 (2 prefixes × 2 profiles × 21 tier/level combinations)
  */
 
 export function generateHEVCCodecStrings() {
@@ -113,19 +118,28 @@ export function generateHEVCCodecStrings() {
     // B0: Progressive source (most common)
     const constraintFlags = 'B0';
 
-    // Generate all valid combinations
-    for (const profile of profiles) {
-        for (const levelInfo of levels) {
-            // Build codec string: hev1.{profile}.{compatibility}.{tier}{level}.{constraint}
-            const codecString = `hev1.${profile.profileIdc}.${profile.compatibilityFlags}.${levelInfo.tier}${levelInfo.level}.${constraintFlags}`;
+    // Both codec prefixes for comprehensive testing
+    const prefixes = [
+        { value: 'hvc1', name: 'hvc1 (out-of-band params)' },
+        { value: 'hev1', name: 'hev1 (in-band params)' }
+    ];
 
-            codecs.push({
-                string: codecString,
-                family: 'hevc',
-                profile: profile.name,
-                tier: levelInfo.tier === 'L' ? 'Low' : 'High',
-                level: levelInfo.name
-            });
+    // Generate all valid combinations
+    for (const prefix of prefixes) {
+        for (const profile of profiles) {
+            for (const levelInfo of levels) {
+                // Build codec string: {prefix}.{profile}.{compatibility}.{tier}{level}.{constraint}
+                const codecString = `${prefix.value}.${profile.profileIdc}.${profile.compatibilityFlags}.${levelInfo.tier}${levelInfo.level}.${constraintFlags}`;
+
+                codecs.push({
+                    string: codecString,
+                    family: 'hevc',
+                    prefix: prefix.name,
+                    profile: profile.name,
+                    tier: levelInfo.tier === 'L' ? 'Low' : 'High',
+                    level: levelInfo.name
+                });
+            }
         }
     }
 

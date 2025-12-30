@@ -444,6 +444,7 @@
             let detailsHtml = '';
             if (codec.family !== 'vp8') {
                 const details = [];
+                if (codec.prefix) details.push(`Prefix: ${codec.prefix}`);
                 if (codec.profile) details.push(`Profile: ${codec.profile}`);
                 if (codec.level) details.push(`Level: ${codec.level}`);
                 if (codec.tier) details.push(`Tier: ${codec.tier}`);
@@ -554,6 +555,7 @@
             let detailsHtml = '';
             if (result.family !== 'vp8') {
                 const details = [];
+                if (result.prefix) details.push(`Prefix: ${result.prefix}`);
                 if (result.profile) details.push(`Profile: ${result.profile}`);
                 if (result.level) details.push(`Level: ${result.level}`);
                 if (result.tier) details.push(`Tier: ${result.tier}`);
