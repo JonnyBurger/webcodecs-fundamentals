@@ -9,14 +9,16 @@
  */
 
 export class GPUDrawImage {
-  constructor(canvas) {
+  constructor(canvas, options = {}) {
     this.canvas = canvas;
     this.mode = null; // 'webgpu' or 'bitmap'
+    this.filterMode = options.filterMode || 'linear'; // 'linear' or 'bicubic'
 
     // WebGPU state
     this.device = null;
     this.context = null;
-    this.pipeline = null;
+    this.linearPipeline = null;
+    this.bicubicPipeline = null;
     this.sampler = null;
 
     // Bitmap renderer fallback
@@ -62,41 +64,59 @@ export class GPUDrawImage {
       minFilter: 'linear',
     });
 
-    // Create bicubic sampling shader
-    const shaderModule = this.device.createShaderModule({
-      code: `
-        struct VertexOutput {
-          @builtin(position) position: vec4f,
-          @location(0) texCoord: vec2f,
+    const vertexShader = `
+      struct VertexOutput {
+        @builtin(position) position: vec4f,
+        @location(0) texCoord: vec2f,
+      }
+
+      @vertex
+      fn vertexMain(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+        var pos = array<vec2f, 6>(
+          vec2f(-1.0, -1.0),
+          vec2f(1.0, -1.0),
+          vec2f(-1.0, 1.0),
+          vec2f(-1.0, 1.0),
+          vec2f(1.0, -1.0),
+          vec2f(1.0, 1.0)
+        );
+
+        var texCoord = array<vec2f, 6>(
+          vec2f(0.0, 1.0),
+          vec2f(1.0, 1.0),
+          vec2f(0.0, 0.0),
+          vec2f(0.0, 0.0),
+          vec2f(1.0, 1.0),
+          vec2f(1.0, 0.0)
+        );
+
+        var output: VertexOutput;
+        output.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+        output.texCoord = texCoord[vertexIndex];
+        return output;
+      }
+    `;
+
+    // Linear sampling shader (hardware accelerated)
+    const linearShaderModule = this.device.createShaderModule({
+      code: vertexShader + `
+        @group(0) @binding(0) var videoTexture: texture_external;
+        @group(0) @binding(1) var texSampler: sampler;
+
+        @fragment
+        fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
+          return textureSampleBaseClampToEdge(videoTexture, texSampler, input.texCoord);
         }
+      `
+    });
 
-        @vertex
-        fn vertexMain(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
-          var pos = array<vec2f, 6>(
-            vec2f(-1.0, -1.0),
-            vec2f(1.0, -1.0),
-            vec2f(-1.0, 1.0),
-            vec2f(-1.0, 1.0),
-            vec2f(1.0, -1.0),
-            vec2f(1.0, 1.0)
-          );
+    // Bicubic sampling shader (multiple texture reads)
+    const bicubicShaderModule = this.device.createShaderModule({
+      code: vertexShader + `
+        @group(0) @binding(0) var videoTexture: texture_external;
+        @group(0) @binding(1) var texSampler: sampler;
 
-          var texCoord = array<vec2f, 6>(
-            vec2f(0.0, 1.0),
-            vec2f(1.0, 1.0),
-            vec2f(0.0, 0.0),
-            vec2f(0.0, 0.0),
-            vec2f(1.0, 1.0),
-            vec2f(1.0, 0.0)
-          );
-
-          var output: VertexOutput;
-          output.position = vec4f(pos[vertexIndex], 0.0, 1.0);
-          output.texCoord = texCoord[vertexIndex];
-          return output;
-        }
-
-        // Bicubic interpolation helper
+        // Bicubic weight function (Catmull-Rom)
         fn cubic(x: f32) -> f32 {
           let x_abs = abs(x);
           if (x_abs <= 1.0) {
@@ -107,27 +127,66 @@ export class GPUDrawImage {
           return 0.0;
         }
 
-        @group(0) @binding(0) var videoTexture: texture_external;
-        @group(0) @binding(1) var texSampler: sampler;
-
         @fragment
         fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
-          // Simple sampling from external texture
-          // Note: External textures use hardware samplers for performance
-          // Bicubic filtering would require a regular texture (with copy overhead)
-          return textureSampleBaseClampToEdge(videoTexture, texSampler, input.texCoord);
+          // Get texture dimensions (estimated from aspect ratio)
+          // For more accurate results, you could pass these as uniforms
+          let texCoord = input.texCoord;
+
+          // Approximate texture size - in production you'd pass this as a uniform
+          let texSize = vec2f(1920.0, 1080.0);
+          let texelSize = 1.0 / texSize;
+
+          let coord = texCoord * texSize;
+          let coordFloor = floor(coord);
+          let f = coord - coordFloor;
+
+          var result = vec4f(0.0, 0.0, 0.0, 0.0);
+          var weightSum = 0.0;
+
+          // Sample 4x4 neighborhood
+          for (var y = -1; y <= 2; y++) {
+            for (var x = -1; x <= 2; x++) {
+              let offset = vec2f(f32(x), f32(y));
+              let sampleCoord = (coordFloor + offset + 0.5) * texelSize;
+
+              let weight = cubic(f.x - f32(x)) * cubic(f.y - f32(y));
+              result += textureSampleBaseClampToEdge(videoTexture, texSampler, sampleCoord) * weight;
+              weightSum += weight;
+            }
+          }
+
+          return result / weightSum;
         }
       `
     });
 
-    this.pipeline = this.device.createRenderPipeline({
+    this.linearPipeline = this.device.createRenderPipeline({
       layout: 'auto',
       vertex: {
-        module: shaderModule,
+        module: linearShaderModule,
         entryPoint: 'vertexMain',
       },
       fragment: {
-        module: shaderModule,
+        module: linearShaderModule,
+        entryPoint: 'fragmentMain',
+        targets: [{
+          format: presentationFormat,
+        }],
+      },
+      primitive: {
+        topology: 'triangle-list',
+      },
+    });
+
+    this.bicubicPipeline = this.device.createRenderPipeline({
+      layout: 'auto',
+      vertex: {
+        module: bicubicShaderModule,
+        entryPoint: 'vertexMain',
+      },
+      fragment: {
+        module: bicubicShaderModule,
         entryPoint: 'fragmentMain',
         targets: [{
           format: presentationFormat,
@@ -162,8 +221,10 @@ export class GPUDrawImage {
   }
 
   drawImageWebGPU(videoFrame) {
+    const pipeline = this.filterMode === 'bicubic' ? this.bicubicPipeline : this.linearPipeline;
+
     const bindGroup = this.device.createBindGroup({
-      layout: this.pipeline.getBindGroupLayout(0),
+      layout: pipeline.getBindGroupLayout(0),
       entries: [
         {
           binding: 0,
@@ -190,7 +251,7 @@ export class GPUDrawImage {
       }],
     });
 
-    renderPass.setPipeline(this.pipeline);
+    renderPass.setPipeline(pipeline);
     renderPass.setBindGroup(0, bindGroup);
     renderPass.draw(6);
     renderPass.end();
@@ -210,6 +271,25 @@ export class GPUDrawImage {
    */
   getMode() {
     return this.mode;
+  }
+
+  /**
+   * Get the current filter mode
+   * @returns {'linear'|'bicubic'}
+   */
+  getFilterMode() {
+    return this.filterMode;
+  }
+
+  /**
+   * Set the filter mode (only applies to WebGPU mode)
+   * @param {'linear'|'bicubic'} mode
+   */
+  setFilterMode(mode) {
+    if (mode !== 'linear' && mode !== 'bicubic') {
+      throw new Error('Filter mode must be "linear" or "bicubic"');
+    }
+    this.filterMode = mode;
   }
 
   /**
