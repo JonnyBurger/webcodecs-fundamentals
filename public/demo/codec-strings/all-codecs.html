@@ -314,6 +314,7 @@
             <button id="stopTestsBtn" disabled>Stop Testing</button>
             <button class="secondary" id="clearResultsBtn">Clear Results</button>
             <button class="secondary" id="exportResultsBtn">Export Results</button>
+            <button class="secondary" id="submitResultsBtn" disabled>Submit Results to Server</button>
         </div>
 
         <div class="stats">
@@ -528,6 +529,11 @@
             isTesting = false;
             document.getElementById('runTestsBtn').disabled = false;
             document.getElementById('stopTestsBtn').disabled = true;
+
+            // Enable submit button if tests completed
+            if (results.length > 0) {
+                document.getElementById('submitResultsBtn').disabled = false;
+            }
         }
 
         function stopTests() {
@@ -630,6 +636,61 @@
             document.getElementById('exportArea').select();
         }
 
+        async function submitResults() {
+            if (results.length === 0) {
+                alert('No test results to submit. Please run tests first.');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitResultsBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            try {
+                const payload = {
+                    testMetadata: {
+                        timestamp: new Date().toISOString(),
+                        userAgent: navigator.userAgent,
+                        browser: getBrowserInfo(),
+                        platform: navigator.platform,
+                        codecTab: currentTab
+                    },
+                    results: results
+                };
+
+                // Submit to dev backend API endpoint
+                const API_ENDPOINT = 'https://dev-backend.katana.video/codec-test/submit';
+
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server responded with ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                alert(`✓ Results submitted successfully!\n\nCodecs tested: ${data.codecsTested}\nFilename: ${data.filename}`);
+
+                submitBtn.textContent = '✓ Submitted';
+                setTimeout(() => {
+                    submitBtn.textContent = 'Submit Results to Server';
+                    submitBtn.disabled = false;
+                }, 3000);
+
+            } catch (error) {
+                console.error('Error submitting results:', error);
+                alert(`Failed to submit results: ${error.message}\n\nMake sure dev-backend.katana.video is accessible and the endpoint is deployed.`);
+                submitBtn.textContent = 'Submit Results to Server';
+                submitBtn.disabled = false;
+            }
+        }
+
         function updateDeviceInfo() {
             const ua = navigator.userAgent;
             const info = `User Agent: ${ua} | Browser: ${getBrowserInfo()} | Platform: ${navigator.platform} | WebCodecs: ${typeof VideoEncoder !== 'undefined' ? '✓ Yes' : '✗ No'}`;
@@ -651,6 +712,7 @@
         document.getElementById('stopTestsBtn').addEventListener('click', stopTests);
         document.getElementById('clearResultsBtn').addEventListener('click', clearResults);
         document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
+        document.getElementById('submitResultsBtn').addEventListener('click', submitResults);
 
         // Initialize
         updateDeviceInfo();

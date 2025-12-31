@@ -549,7 +549,7 @@ const DECODE_QUEUE_LIMIT=20;
 ```
 
 
-**fillBuffer()**: A function which we will use to send chunks for decoding, which limits the number of chunks sent to the decode size and limits the size of the decode_queue.
+**fillBuffer()**: A function which we will use to send chunks for decoding, which limits the number of chunks sent to the decode size and limits the size of the decode_queue. 
 
 ```typescript
 
@@ -560,6 +560,9 @@ function fillBuffer(){
         if(decodeChunkIndex  < chunks.length){
 
             if(decoder.decodeQueueSize > DECODE_QUEUE_LIMIT) continue;
+
+            ensureDecoder();
+
             try{
                 decoder.decode(decodeChunkIndex);
                 decodeChunkIndex +=1;
@@ -573,8 +576,37 @@ function fillBuffer(){
     }
 }
 
+
+
 ```
 
+
+**ensureDecoder()**: What many hello world guides omit is that the decoder can fail for a variety of reasons during the decoding loop. One common reason is corrupted or missing frames in a video file, so we write a quick utility that skips to the next key frame and attempts to recover the decoding process.
+
+
+```typescript
+
+function ensureDecoder(){
+    if (decoder.state  !== 'configured') {
+
+        if(decoder.state !== 'closed'){
+            try{
+              decoder.close();    //Close the old decoder
+            } catch(e){
+            }
+        }
+
+        decoder = setupDecoder();
+
+        for(let j=decodeChunkIndex; j < chunks.length; j++){
+            if(chunks[j].type === "key"){
+                decodeChunkIndex = j;
+                break;
+            }
+        }
+    }
+}
+```
 **Render Buffer**: We can't render `VideoFrame` objects as soon as they are decoded by the decoder, otherwise the video will play back at 20x to 100x speed. We therefore need to store rendered frames in a buffer, and consume frames from the buffer.
 
 ```typescript 
@@ -656,34 +688,41 @@ getLatestFrame(time: number){
 ```
 
 
-**decoder** It's only now that we can finally define our decoder, which will take frames than then fill the render buffer. If the frames generated are behind the last rendered time, we need to close them, and fill the buffer as necessary so the decoder can catch up to the playback head.
+**decoder** It's only now that we can finally define our decoder, which will take frames than then fill the render buffer. If the frames generated are behind the last rendered time, we need to close them, and fill the buffer as necessary so the decoder can catch up to the playback head. We set this up as a function in case we need to restart the decoder.
 
 ```typescript
 
 
-const decoder = new VideoDecoder({
-    output: function (frame: VideoFrame){
+function setupDecoder(){
 
-        if(frame.timestamp/1e6 < lastRenderedTime) {
-            frame.close();
-            if(render_buffer.length < BATCH_DECODE_SIZE) {
-                fillBuffer();
+   const newDecoder = new VideoDecoder({
+        output: function (frame: VideoFrame){
+
+            if(frame.timestamp/1e6 < lastRenderedTime) {
+                frame.close();
+                if(render_buffer.length < BATCH_DECODE_SIZE) {
+                    fillBuffer();
+                }
+                return;
             }
-            return;
+            
+            render_buffer.push(frame)
+
         }
-        
-        render_buffer.push(frame)
 
-    }
+        error: function (error: Error){
+            console.warn(error);
+        }
+    });
 
-    error: function (error: Error){
-        console.warn(error);
-    }
-},
+    newDecoder.configure(metaData.video);
 
-)
+    return newDecoder;
+}
 
-decoder.configure(metaData.video);
+let decoder = setupDecoder();
+
+
 
 ```
 
@@ -1021,6 +1060,8 @@ Putting this all together, we can finally see an actual video play back at norma
 
 
 If that seems like a lot of code for simple video playback, well, yes. We are working with low level APIs, and by it's nature you have lots of control but also lots to manage yourself.
+
+
 
 Hopefully this code also communicates the idea of how to think about WebCodecs, as data flow pipelines, with chunks being consumed, frames being generated, buffered then consumed, all while managing memory limits.
 
