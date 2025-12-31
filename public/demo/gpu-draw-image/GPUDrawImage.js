@@ -20,6 +20,7 @@ export class GPUDrawImage {
     this.linearPipeline = null;
     this.bicubicPipeline = null;
     this.sampler = null;
+    this.uniformBuffer = null;
 
     // Bitmap renderer fallback
     this.bitmapCtx = null;
@@ -62,6 +63,12 @@ export class GPUDrawImage {
     this.sampler = this.device.createSampler({
       magFilter: 'linear',
       minFilter: 'linear',
+    });
+
+    // Create uniform buffer for texture dimensions (2 floats = 8 bytes)
+    this.uniformBuffer = this.device.createBuffer({
+      size: 8,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
     const vertexShader = `
@@ -114,7 +121,7 @@ export class GPUDrawImage {
     const bicubicShaderModule = this.device.createShaderModule({
       code: vertexShader + `
         @group(0) @binding(0) var videoTexture: texture_external;
-        @group(0) @binding(1) var texSampler: sampler;
+        @group(0) @binding(1) var<uniform> texSize: vec2f;
 
         // Bicubic weight function (Catmull-Rom)
         fn cubic(x: f32) -> f32 {
@@ -129,13 +136,7 @@ export class GPUDrawImage {
 
         @fragment
         fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
-          // Get texture dimensions (estimated from aspect ratio)
-          // For more accurate results, you could pass these as uniforms
           let texCoord = input.texCoord;
-
-          // Approximate texture size - in production you'd pass this as a uniform
-          let texSize = vec2f(1920.0, 1080.0);
-          let texelSize = 1.0 / texSize;
 
           let coord = texCoord * texSize;
           let coordFloor = floor(coord);
@@ -144,14 +145,16 @@ export class GPUDrawImage {
           var result = vec4f(0.0, 0.0, 0.0, 0.0);
           var weightSum = 0.0;
 
-          // Sample 4x4 neighborhood
+          // Read exact pixel values from 4x4 neighborhood using textureLoad
           for (var y = -1; y <= 2; y++) {
             for (var x = -1; x <= 2; x++) {
-              let offset = vec2f(f32(x), f32(y));
-              let sampleCoord = (coordFloor + offset + 0.5) * texelSize;
+              let pixelCoord = vec2i(i32(coordFloor.x) + x, i32(coordFloor.y) + y);
+
+              // Clamp to valid texture coordinates
+              let clampedCoord = clamp(pixelCoord, vec2i(0, 0), vec2i(i32(texSize.x) - 1, i32(texSize.y) - 1));
 
               let weight = cubic(f.x - f32(x)) * cubic(f.y - f32(y));
-              result += textureSampleBaseClampToEdge(videoTexture, texSampler, sampleCoord) * weight;
+              result += textureLoad(videoTexture, clampedCoord) * weight;
               weightSum += weight;
             }
           }
@@ -222,21 +225,39 @@ export class GPUDrawImage {
 
   drawImageWebGPU(videoFrame) {
     const pipeline = this.filterMode === 'bicubic' ? this.bicubicPipeline : this.linearPipeline;
+    const useBicubic = this.filterMode === 'bicubic';
+
+    const entries = [
+      {
+        binding: 0,
+        resource: this.device.importExternalTexture({
+          source: videoFrame,
+        }),
+      }
+    ];
+
+    // Add sampler for linear filtering, uniform buffer for bicubic
+    if (useBicubic) {
+      // Update uniform buffer with actual texture dimensions
+      const texSize = new Float32Array([videoFrame.displayWidth, videoFrame.displayHeight]);
+      this.device.queue.writeBuffer(this.uniformBuffer, 0, texSize);
+
+      entries.push({
+        binding: 1,
+        resource: {
+          buffer: this.uniformBuffer,
+        },
+      });
+    } else {
+      entries.push({
+        binding: 1,
+        resource: this.sampler,
+      });
+    }
 
     const bindGroup = this.device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
-      entries: [
-        {
-          binding: 0,
-          resource: this.device.importExternalTexture({
-            source: videoFrame,
-          }),
-        },
-        {
-          binding: 1,
-          resource: this.sampler,
-        }
-      ],
+      entries: entries,
     });
 
     const commandEncoder = this.device.createCommandEncoder();
