@@ -479,7 +479,7 @@ export class GPUDrawImage {
 
 </details>
 
-It seems like a lot of overhead, but the zero copy operation makes a clear performance difference
+It may seem like a lot of programming overhead, but the zero copy operation makes a clear performance difference
 
 
 | Device    | Browser | Decode Speed |
