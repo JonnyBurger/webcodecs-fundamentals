@@ -268,7 +268,7 @@
         wasmFilePath: "https://cdn.jsdelivr.net/npm/web-demuxer@latest/dist/wasm-files/web-demuxer.wasm",
       });
 
-      const response = await fetch('test-outro-4k.mp4');
+      const response = await fetch('https://sb2702-files.s3.us-east-1.amazonaws.com/misc/test-outro.mp4');
       const buffer = await response.arrayBuffer();
       const file = new File([buffer], 'test-outro-4k.mp4', {type: 'video/mp4'});
 
