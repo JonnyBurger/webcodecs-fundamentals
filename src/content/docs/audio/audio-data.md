@@ -95,7 +95,7 @@ The `AudioData` class uses two WebCodecs specific terms:
 
 When you decode audio with WebCodecs, you will get an array of `AudioData` objects, each usually representing ~0.2 to 0.5 seconds of audio, with the following properties:
 
-`format`: This is usually `f32-planar`, meaning each channel is cleanly stored as Float32 samples it's own array. If it is `f32`, samples are `float32` but interleaved in one big array.
+`format`: This is usually `f32-planar`, meaning each channel is cleanly stored as Float32 samples it's own array. If it is `f32`, samples are `float32` but interleaved in one big array. You almost never see data in other formats, but there are other [formats](https://developer.mozilla.org/en-US/docs/Web/API/AudioData/format)
 
 `sampleRate`: The sample rate
 
@@ -113,6 +113,8 @@ When you decode audio with WebCodecs, you will get an array of `AudioData` objec
 
 To read `AudioData` samples as `Float32Arrays`, you would create a `Float32Array` for each channel, and then use the `copyTo` method.
 
+
+##### f32-planar
 If the `AudioData` has the `f32-planar` format, you just directly copy each channel into it's array using `planeIndex`:
 
 
@@ -128,6 +130,8 @@ for(const audioData of decodedAudio){
     audioData.copyTo(primary_right, {frameOffset: 0, planeIndex: 1});
 }
 ```
+
+##### f32
 
 If instead it is `f32`, you would still create buffers, but now you would have to de-interleave the data.
 
@@ -150,6 +154,8 @@ for(const audioData of decodedAudio){
 }
 
 ```
+
+##### Generic reader
 
 You can use a general function like this one to return data for either case:
 
@@ -188,30 +194,243 @@ function extractChannels(audioData: AudioData): Float32Array[] {
 
 And then you'd extract channels as so:
 
-```
-
-// Usage
+```typescript
 const decodedAudio = <AudioData[]> decodeAudio(encoded_audio);
 
 for (const audioData of decodedAudio) {
-    const channels = extractChannels(audioData);
+    const channels =  <Float32Arrray[]>  extractChannels(audioData);
     const primary_left = channels[0];
     const primary_right = channels[1]; // if it exists
-    // ... etc
 }
 
 ```
 
-
-
 ### Manipulating audio data
+
+
+Once you have audio data as `Float32Arrays`, you can arbitrarily manipulate data. Manipulating audio data can be compute intensive, so you'd ideally do all of this in a worker thread, potentially with libraries using web assembly to accelerate computation.
+
+For simplicity, I'll just a couple of basic manipulations I've used in my actual video editing application used in the video rendering process. These functions are implemented in Javascript, mostly because the audio computation is negligible compared to the computation involved in video encoding.
 
 ##### Scaling audio
 
+Perhaps the simplest operation is just to scale audio data (adjusting the volume)
+
+
+```typescript
+
+const SCALING_FACTOR=2;
+
+const decodedAudio = <AudioData[]> decodeAudio(encoded_audio);
+
+for (const audioData of decodedAudio) {
+    const channels = <Float32Arrray[]> extractChannels(audioData);
+
+    for (const channel of channels){
+        const scaled = new Float32Array(channel.length);
+
+        for(let i=0; i < channel.length; i++){
+            scaled[i] = channel[i]*SCALING_FACTOR
+        }
+        //Do something with scaled
+    }
+}
+
+```
 
 ##### Mixing audio
 
+You can also mix two audio sources together. Here's how you'd create a fade transition between two audio sources:
+
+```typescript
+
+
+const fromAudio = <AudioData[]> decodeAudio(from_audio_encoded);
+const toAudio = <AudioData[]> decodeAudio(to_audio_encoded);
+
+const num_chunks = Math.min(fromAudio.length, toAudio.length);
+
+
+const fade_in = fromAudio.slice(0, num_chunks);
+const fade_out = toAudio.slice(0, num_chunks);
+
+
+const mixed_chunks: AudioData[] = [];
+
+for(let i=0; i<num_chunks; i++){
+
+
+    const source_chunk = fade_in[i];
+    const target_chunk = fade_out[i];
+
+    // Assuming f32-planar, 2 channels
+    const source_left = new Float32Array(source_chunk.numberOfFrames);
+    const source_right = new Float32Array(source_chunk.numberOfFrames);
+    const target_left = new Float32Array(target_chunk.numberOfFrames);
+    const target_right = new Float32Array(target_chunk.numberOfFrames);
+
+    source_chunk.copyTo(source_left, {frameOffset: 0, planeIndex: 0});
+    source_chunk.copyTo(source_right, {frameOffset: 0, planeIndex: 1});
+    target_chunk.copyTo(target_left, {frameOffset: 0, planeIndex: 0});
+    target_chunk.copyTo(target_right, {frameOffset: 0, planeIndex: 1});
+
+
+    const mixed_left = new Float32Array(source_left.length);
+    const mixed_right = new Float32Array(source_right.length);
+
+    for(let j=0; j<source_left.length; j++){
+        mixed_left[j] = source_left[j] + target_left[j];
+    }
+
+    for(let j=0; j<source_right.length; j++){
+        mixed_right[j] = source_right[j] + target_right[j];
+    }
+    //Do something with mixed channels
+}
+
+
+```
+
+##### Resampling
+
+Finally, you can also resample raw audio in javascript, as so:
+
+```typescript
+
+
+async function resample(audio: AudioData[], target_sample_rate: number){
+
+    const source_sample_rate = audio[0].sampleRate;
+    const num_source_channels = audio[0].numberOfChannels;
+    const num_target_channels = audio[0].numberOfChannels
+
+    const ratio = target_sample_rate/source_sample_rate;
+
+    const target_data_chunks: AudioData[] = [];
+
+    let total_frames = 0;
+    let frame_offset = 0;
+
+
+    for(const frame of audio){
+        total_frames += frame.numberOfFrames;
+    }
+
+    const start_timestamp = audio[0].timestamp;
+    const source_audio = new Float32Array(total_frames*num_target_channels);
+    const num_target_frames = Math.floor(total_frames*ratio);
+    const target_data = new Float32Array(num_target_frames*num_target_channels);
+    const num_taget_audio_chunks = Math.floor(target_data.length/(1024*num_target_channels));
+
+    for(let channel=0; channel<num_target_channels; channel++){
+        for(const frame of audio){
+            const data_view = new DataView(source_audio.buffer, frame_offset*4, frame.numberOfFrames*4);
+            frame.copyTo(data_view, {frameOffset: 0, planeIndex: channel});
+            frame_offset += frame.numberOfFrames;
+        }
+    }
+
+    for(let i=0; i<num_target_frames*num_target_channels; i++){
+        const inputIndex = i / ratio;
+        const index1 = Math.floor(inputIndex);
+        const index2 = Math.min(index1 + 1, source_audio.length - 1);
+        const fraction = inputIndex - index1;
+        target_data[i] = source_audio[index1] + fraction * (source_audio[index2] - source_audio[index1]);
+    }
+
+    const left_channel = target_data.subarray(0, num_target_frames);
+    const right_channel = target_data.subarray(num_target_frames, num_target_frames*2);
+}
+
+```
 
 ### How to write audio data
 
 
+Two write audio data, you'd need to use `AudioData` constructor, format the input data as a `Float32Array`, and then specify the relevant metadata. For example, let's go back to the audio mixing example:
+
+
+```typescript
+
+const mixed_left: Float32Array = //obtained previously;
+const mixed_right: Float32Array = //obtained previously
+
+const mixed_stereo = new Float32Array(mixed_left.length*2);
+mixed_stereo.set(mixed_left, 0);
+mixed_stereo.set(mixed_right, mixed_left.length);
+
+const mixed_chunk = new AudioData({
+    numberOfFrames: 1024,
+    numberOfChannels: 2,
+    data: mixed_stereo,
+    format: "f32-planar",
+    sampleRate: source_chunk.sampleRate,
+    timestamp: source_chunk.timestamp
+})
+
+```
+
+Here's a full working example:
+
+```typescript
+
+
+function mixAudio(fromAudio: AudioData[], toAudio: AudioData[]): AudioData[]{
+
+    const num_chunks = Math.min(fromAudio.length, toAudio.length);
+    const fade_in = fromAudio.slice(0, num_chunks);
+    const fade_out = toAudio.slice(0, num_chunks);
+    const mixed_chunks: AudioData[] = [];
+
+    for(let i=0; i<num_chunks; i++){
+
+        const source_chunk = fade_in[i];
+        const target_chunk = fade_out[i];
+
+        // Assuming f32-planar, 2 channels
+        const source_left = new Float32Array(source_chunk.numberOfFrames);
+        const source_right = new Float32Array(source_chunk.numberOfFrames);
+        const target_left = new Float32Array(target_chunk.numberOfFrames);
+        const target_right = new Float32Array(target_chunk.numberOfFrames);
+
+        source_chunk.copyTo(source_left, {frameOffset: 0, planeIndex: 0});
+        source_chunk.copyTo(source_right, {frameOffset: 0, planeIndex: 1});
+        target_chunk.copyTo(target_left, {frameOffset: 0, planeIndex: 0});
+        target_chunk.copyTo(target_right, {frameOffset: 0, planeIndex: 1});
+
+
+        const mixed_left = new Float32Array(source_left.length);
+        const mixed_right = new Float32Array(source_right.length);
+
+        for(let j=0; j<source_left.length; j++){
+            mixed_left[j] = source_left[j] + target_left[j];
+        }
+
+        for(let j=0; j<source_right.length; j++){
+            mixed_right[j] = source_right[j] + target_right[j];
+        }
+
+        const mixed_stereo = new Float32Array(mixed_left.length*2);
+        mixed_stereo.set(mixed_left, 0);
+        mixed_stereo.set(mixed_right, mixed_left.length);
+
+        const mixed_chunk = new AudioData({
+            numberOfFrames: 1024,
+            numberOfChannels: 2,
+            data: mixed_stereo,
+            format: "f32-planar",
+            sampleRate: source_chunk.sampleRate,
+            timestamp: source_chunk.timestamp
+        })
+        mixed_chunks.push(mixed_chunks)
+
+    }
+
+    return mixed_chunks
+
+}
+
+```
+### Next up
+
+Now that you've seen how  `AudioData` objects work and raw audio works, we can move on to `EncodedAudioChunk` objects.
