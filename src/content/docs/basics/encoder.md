@@ -258,19 +258,37 @@ When you build a pipleine with both a `VideoDecoder` and `VideoEncoder` in WebCo
 Some of this gets easier with libraries like [MediaBunny](../../media-bunny/intro), and later in design patterns, we'll include full working examples for transcoding, playback and editing that you can copy and modify.
 
 
-#### WebGPU Render
+#### WebGPU Rendering
 
+If you have some type of rendering pipeline involving WebGPU or WebGL (such as in a video editing application), you'd be feeding one or more video frames from the decoder into a rendering pipeline, the output of which would then go into an encoder.
 
 ![](/src/assets/content/basics/encoder/rube-goldberg-3.png)
 
 
+Fortunately, because rendering can be treated like a simple async task, it doesn't add much complexity to the overall pipeline. Just keep in mind:
+
+**Do not wait for the the GPU to finish it's work before sending the frames for encoding**
+
+e.g, don't run
+
+```typescript
+render(<VideoFrame> frame);
+await  device.queue.onSubmittedWorkDone();
+encoder.encode(renderCanvas)
+```
+You will end up encoding blank frames.  Instead, just encode directly after running the WebGPU shaders.
+```typescript
+render(<VideoFrame> frame);
+encoder.encode(renderCanvas)
+```
+
+I don't know why it works like this, but it does.
 
 #### Encoding queue
 
-#### Finishing conditions
+Like with the `VideoDecoder`, the `VideoEncoder` also has a queue (of frames to encode). If you are rendering animation at 30fps run `encoder.encode(frame)` on each render, but the encoder is only able to encode at 10 fps, the encoder queue will eventually grow until it runs out of video memory and the process crashes.
 
-
-
+You therefore need to manage how and when you sent frames to the encoder, checking `encoder.encodeQueueSize` within your render loop, so that the render itself waits for the encoder queue is within bounds, which we'll see below.
 
 
 ## Encoding Loop
