@@ -36,6 +36,7 @@ setInterval(function(){
     const currentTimeMicroSeconds = (performance.now() - start)*1e3;
     const frame = new VideoFrame(canvas, {timestamp: currenTimeMicroSeconds });
     encoder.encode(frame, {keyFrame: framesSent%60 ==0}); //Key Frame every 60 frames;
+    frame.close();
 }, 40);  // Capture a frame every 40 ms (25fps)
 
 ```
@@ -168,21 +169,50 @@ Encoding performance varies dramatically across devices and browsers, and is in 
 
 
 
+#### Another Rube-Goldberg machine
+
+Much like the [VideoDecoder](../video-decoder), you shouldn't think of the `encode()` function as some async task, it's better to treat the encoder as a [Rube-Goldberg machine](https://en.wikipedia.org/wiki/Rube_Goldberg_machine), where you continuously feed frames, feeding frames in pushes the process along, and encoded chunks come out the other end.
+
+![](/src/assets/content/basics/encoder/rube-goldber-encoder.png)
+
+You might need to feed in a few frames before the encoder starts outputing chunks, and when you've finished feeding frames, the last few chunks might get 'stuck' (because there's nothing to push the frames along), requiring a call to `encoder.flush()`
+
+
+#### Chaining Pipelines
+
+Building an encoder in isolation is all good and well, but if the source of your video frames is, at some point, video from a `VideoDecoder` (as in transcoding), you are now chaining a `VideoDecoder` and a `VideoEncoder` together. 
+
+![](/src/assets/content/basics/encoder/rube-goldberg-2.png)
+
+This makes things complicated because now you have two machines which can both get stuck, and keeping track of frames and chunks becomes more challenging.
+
+You now also have to manage memory bottlenecks at multiple points (`decoder.decodeQueueSize`,  number of open `VideoFrame` objects, `encoder.encodeQueueSize`).
+
+When you build a pipleine with both a `VideoDecoder` and `VideoEncoder` in WebCodecs, you really do have to pay attention to data flows, progress and memory bottlenecks.
+
+Some of this gets easier with libraries like [MediaBunny](../../media-bunny/intro), and later in design patterns, we'll include full working examples for transcoding, playback and editing that you can copy and modify.
+
+
+#### WebGPU Render
+
+
+![](/src/assets/content/basics/encoder/rube-goldberg-3.png)
+
+
+
 #### Encoding queue and flush
 
 #### Finishing conditions
 
 
-
+#### Key Frames
 
 
 
 ## Encoding Loop
 
-
-
 * renderFn
 * encoderFree
 * isFinished
 * muxer
-* Full demo
+* Full demo (Write )
