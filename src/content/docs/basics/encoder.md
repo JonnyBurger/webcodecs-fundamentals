@@ -301,6 +301,7 @@ const canvas = new OffscreenCanvas(640, 360);
 const ctx = canvas.getContext('2d');
 const TOTAL_FRAMES=300;
 let frameNumber = 0;
+let chunksMuxed = 0;
 const fps = 30;
 
 ```
@@ -357,6 +358,8 @@ function waitForEncoder(){
 **encodeLoop**: The actual render / encode loop
 
 ```typescript
+
+let flushed = false;
 async function encodeLoop(){
 
     renderFrame();
@@ -369,7 +372,9 @@ async function encodeLoop(){
     frameNumber++;
 
 
-    if(frameNumber === TOTAL_FRAMES) return finish();
+    if(frameNumber === TOTAL_FRAMES) {
+        if (!flushed) encoder.flush();
+    }
     else return encodeLoop();
 }
 ```
@@ -380,7 +385,7 @@ async function encodeLoop(){
 
 import {
   EncodedPacket,
-  EncodedPacketVideoSource,
+  EncodedVideoPacketSource,
   BufferTarget,
   Mp4OutputFormat,
   Output
@@ -392,13 +397,27 @@ const output = new Output({
     target: new BufferTarget(),
 });
 
-const source = new EncodedVideoPacketSource({codec: 'avc'});
+const source = new EncodedVideoPacketSource('avc');
 output.addVideoTrack(source);
 
 await output.start();
 
 
 ```
+
+**finish()**: We'll put the finish handler to get the output video as a blob
+
+```typescript
+
+await output.finalize();
+const buffer = <ArrayBuffer> output.target.buffer;
+encoder.close();
+const blob =  new Blob([buffer], { type: 'video/mp4' });
+
+
+
+```
+
 
 **getBitrate()**: The getBitrate function we mentioned earlier
 
@@ -429,6 +448,8 @@ function getBitrate(width, height, fps, quality = 'good') {
 const encoder = new VideoEncoder({
     output: function(chunk, meta){
         source.add(EncodedPacket.fromEncodedChunk(chunk))
+        chunksMuxed++;
+        if(chunksMuxed === TOTAL_FRAMES) finish();
     },
     error: function(e){
         console.warn(e);
@@ -437,7 +458,7 @@ const encoder = new VideoEncoder({
 
 
 encoder.configure({
-    'codec': 'vp9.00.10.08.00',
+    'codec': 'avc1.42003e',
      width: 640,
      height: 360,
      bitrate: getBirate(640, 360, fps, 'good'),
@@ -447,3 +468,12 @@ encoder.configure({
 
 
 ```
+
+
+
+
+Putting this all together, we can finally see an actual video encoding in action
+
+
+<iframe src="/demo/encode-loop/index.html" frameBorder="0" width="720" height="600" style="height:880px" ></iframe>
+
