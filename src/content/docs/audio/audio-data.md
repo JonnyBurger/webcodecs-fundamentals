@@ -87,11 +87,121 @@ Practically speaking, we still do need to manage memory, and decode audio in chu
 
 ### Audio Data objects
 
-** frames
-** planes
+The `AudioData` class uses two WebCodecs specific terms:
+
+**frames**: This another way of saying *samples*, and each `AudioData` object will have a property called `numberOfFrames` (e.g. `data.numberOfFrames`) which just means, if you extract each channel as a `Float32Array`, each array will have length `numberOfFrames`.
+
+**planes**: This is another way of saying *channels*. An `AudioData` object with 2 channels will have 2 'planes'.
+
+When you decode audio with WebCodecs, you will get an array of `AudioData` objects, each usually representing ~0.2 to 0.5 seconds of audio, with the following properties:
+
+`format`: This is usually `f32-planar`, meaning each channel is cleanly stored as Float32 samples it's own array. If it is `f32`, samples are `float32` but interleaved in one big array.
+
+`sampleRate`: The sample rate
+
+`numberOfFrames`: Number of samples (per channel)
+
+`numberOfChannels`: Number of channels
+
+`timestamp`: Timestamp in the audio track, in microseconds
+
+`duration`: The duration of the audio data, in microseconds
+
 
 
 ### How to read audio data
+
+To read `AudioData` samples as `Float32Arrays`, you would create a `Float32Array` for each channel, and then use the `copyTo` method.
+
+If the `AudioData` has the `f32-planar` format, you just directly copy each channel into it's array using `planeIndex`:
+
+
+``` typescript
+const decodedAudio = <AudioData[]> decodeAudio(encoded_audio);
+
+for(const audioData of decodedAudio){
+
+    const primary_left = new Float32Array(audioData.numberOfFrames);
+    const primary_right = new Float32Array(audioData.numberOfFrames);
+            
+    audioData.copyTo(primary_left, {frameOffset: 0, planeIndex: 0});
+    audioData.copyTo(primary_right, {frameOffset: 0, planeIndex: 1});
+}
+```
+
+If instead it is `f32`, you would still create buffers, but now you would have to de-interleave the data.
+
+```typescript
+
+const decodedAudio = <AudioData[]> decodeAudio(encoded_audio);
+
+for(const audioData of decodedAudio){
+    const interleavedData = new Float32Array(audioData.numberOfFrames * audioData.numberOfChannels);
+    audioData.copyTo(interleavedData, {frameOffset: 0});
+    
+    // Deinterleave: separate channels from [L, R, L, R, L, R, ...]
+    const primary_left = new Float32Array(audioData.numberOfFrames);
+    const primary_right = new Float32Array(audioData.numberOfFrames);
+    
+    for(let i = 0; i < audioData.numberOfFrames; i++){
+        primary_left[i] = interleavedData[i * 2];     // Even indices = left
+        primary_right[i] = interleavedData[i * 2 + 1]; // Odd indices = right
+    }
+}
+
+```
+
+You can use a general function like this one to return data for either case:
+
+```typescript
+
+function extractChannels(audioData: AudioData): Float32Array[] {
+    const channels: Float32Array[] = [];
+    
+    if (audioData.format.includes('planar')) {
+        // Planar format: one plane per channel
+        for (let i = 0; i < audioData.numberOfChannels; i++) {
+            const channelData = new Float32Array(audioData.numberOfFrames);
+            audioData.copyTo(channelData, { frameOffset: 0, planeIndex: i });
+            channels.push(channelData);
+        }
+    } else {
+        // Interleaved format: all channels in one buffer
+        const interleavedData = new Float32Array(
+            audioData.numberOfFrames * audioData.numberOfChannels
+        );
+        audioData.copyTo(interleavedData, { frameOffset: 0 });
+        
+        // Deinterleave channels
+        for (let ch = 0; ch < audioData.numberOfChannels; ch++) {
+            const channelData = new Float32Array(audioData.numberOfFrames);
+            for (let i = 0; i < audioData.numberOfFrames; i++) {
+                channelData[i] = interleavedData[i * audioData.numberOfChannels + ch];
+            }
+            channels.push(channelData);
+        }
+    }
+    
+    return channels;
+}
+```
+
+And then you'd extract channels as so:
+
+```
+
+// Usage
+const decodedAudio = <AudioData[]> decodeAudio(encoded_audio);
+
+for (const audioData of decodedAudio) {
+    const channels = extractChannels(audioData);
+    const primary_left = channels[0];
+    const primary_right = channels[1]; // if it exists
+    // ... etc
+}
+
+```
+
 
 
 ### Manipulating audio data
