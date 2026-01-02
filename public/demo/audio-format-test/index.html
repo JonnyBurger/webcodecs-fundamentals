@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Format Test</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .file-input {
+      margin: 20px 0;
+      padding: 10px;
+      background: #f0f0f0;
+      border-radius: 4px;
+    }
+    .results {
+      margin-top: 20px;
+    }
+    .test-result {
+      margin-bottom: 30px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fafafa;
+    }
+    .test-result h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .audio-data-info {
+      background: white;
+      padding: 10px;
+      margin: 10px 0;
+      border-left: 3px solid #4CAF50;
+    }
+    .format-highlight {
+      font-weight: bold;
+      color: #d32f2f;
+      font-size: 16px;
+    }
+    .error {
+      color: #d32f2f;
+      background: #ffebee;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .loading {
+      color: #1976d2;
+      font-style: italic;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px;
+      border: 1px solid #ddd;
+    }
+    th {
+      background: #f5f5f5;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Audio Format Test</h1>
+  <p>This demo decodes audio from video files and displays the AudioData format property.</p>
+
+  <div class="file-input">
+    <label for="fileInput">Select a video file (with audio):</label><br>
+    <input type="file" id="fileInput" accept="video/*,audio/*">
+  </div>
+
+  <div class="results" id="results"></div>
+
+  <script type="module">
+    import { WebDemuxer } from 'https://cdn.jsdelivr.net/npm/web-demuxer/+esm';
+
+    const resultsDiv = document.getElementById('results');
+    const fileInput = document.getElementById('fileInput');
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      resultsDiv.innerHTML = '<div class="loading">Processing file...</div>';
+
+      try {
+        await testAudioFormat(file);
+      } catch (error) {
+        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        console.error(error);
+      }
+    });
+
+    async function testAudioFormat(file) {
+      const demuxer = new WebDemuxer({
+        wasmFilePath: "https://cdn.jsdelivr.net/npm/web-demuxer@latest/dist/wasm-files/web-demuxer.wasm",
+      });
+
+      await demuxer.load(file);
+      const mediaInfo = await demuxer.getMediaInfo();
+
+      const audioTrack = mediaInfo.streams.find(s => s.codec_type_string === 'audio');
+
+      if (!audioTrack) {
+        resultsDiv.innerHTML = '<div class="error">No audio track found in file</div>';
+        return;
+      }
+
+      // Get audio chunks
+      const audioChunks = await getChunks(demuxer, 'audio');
+
+      if (audioChunks.length === 0) {
+        resultsDiv.innerHTML = '<div class="error">No audio chunks found</div>';
+        return;
+      }
+
+      // Decode audio
+      const decoderConfig = {
+        codec: audioTrack.codec_string,
+        sampleRate: audioTrack.sample_rate,
+        numberOfChannels: audioTrack.channels
+      };
+
+      const audioDataObjects = await decodeAudio(audioChunks, decoderConfig);
+
+      // Display results
+      displayResults(file.name, audioTrack, audioDataObjects);
+    }
+
+    async function getChunks(demuxer, type, start = 0, end = undefined) {
+      const reader = demuxer.read(type, start, end).getReader();
+      const chunks = [];
+
+      return new Promise((resolve) => {
+        reader.read().then(async function processPacket({ done, value }) {
+          if (value) chunks.push(value);
+          if (done) return resolve(chunks);
+          return reader.read().then(processPacket);
+        });
+      });
+    }
+
+    async function decodeAudio(chunks, config) {
+      const decodedData = [];
+      const total_chunks = chunks.length;
+
+      return new Promise((resolve, reject) => {
+        if (total_chunks === 0) return resolve(decodedData);
+
+        const decoder = new AudioDecoder({
+          output: (audioData) => {
+            decodedData.push(audioData);
+            if (decodedData.length === total_chunks) {
+              return resolve(decodedData);
+            }
+          },
+          error: (e) => { reject(e); }
+        });
+
+        decoder.configure({
+          codec: config.codec,
+          sampleRate: config.sampleRate,
+          numberOfChannels: config.numberOfChannels
+        });
+
+        for (const chunk of chunks) {
+          decoder.decode(chunk);
+        }
+        decoder.flush();
+      });
+    }
+
+    function displayResults(fileName, audioTrack, audioDataObjects) {
+      // Get format statistics
+      const formatCounts = {};
+      audioDataObjects.forEach(ad => {
+        formatCounts[ad.format] = (formatCounts[ad.format] || 0) + 1;
+      });
+
+      let html = `
+        <div class="test-result">
+          <h3>File: ${fileName}</h3>
+
+          <h4>Audio Track Info:</h4>
+          <table>
+            <tr><th>Property</th><th>Value</th></tr>
+            <tr><td>Codec</td><td>${audioTrack.codec_string}</td></tr>
+            <tr><td>Sample Rate</td><td>${audioTrack.sample_rate} Hz</td></tr>
+            <tr><td>Channels</td><td>${audioTrack.channels}</td></tr>
+            <tr><td>Duration</td><td>${audioTrack.duration.toFixed(2)} seconds</td></tr>
+          </table>
+
+          <h4>Decoded Audio Data:</h4>
+          <table>
+            <tr><th>Property</th><th>Value</th></tr>
+            <tr><td>Total AudioData Objects</td><td>${audioDataObjects.length}</td></tr>
+            <tr><td><strong>Format</strong></td><td class="format-highlight">${Object.keys(formatCounts).join(', ')}</td></tr>
+          </table>
+
+          <h4>Format Distribution:</h4>
+          <table>
+            <tr><th>Format</th><th>Count</th><th>Percentage</th></tr>
+      `;
+
+      Object.entries(formatCounts).forEach(([format, count]) => {
+        const percentage = ((count / audioDataObjects.length) * 100).toFixed(1);
+        html += `<tr><td class="format-highlight">${format}</td><td>${count}</td><td>${percentage}%</td></tr>`;
+      });
+
+      html += `
+          </table>
+
+          <h4>First 5 AudioData Objects:</h4>
+      `;
+
+      audioDataObjects.slice(0, 5).forEach((audioData, idx) => {
+        html += `
+          <div class="audio-data-info">
+            <strong>AudioData #${idx + 1}:</strong><br>
+            Format: <span class="format-highlight">${audioData.format}</span><br>
+            Sample Rate: ${audioData.sampleRate} Hz<br>
+            Number of Channels: ${audioData.numberOfChannels}<br>
+            Number of Frames: ${audioData.numberOfFrames}<br>
+            Timestamp: ${(audioData.timestamp / 1e6).toFixed(3)}s<br>
+            Duration: ${(audioData.duration / 1e6).toFixed(3)}s
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      resultsDiv.innerHTML = html;
+
+      // Log to console for easy inspection
+      console.log('Audio Track:', audioTrack);
+      console.log('AudioData Objects:', audioDataObjects);
+      console.log('Format Counts:', formatCounts);
+    }
+  </script>
+</body>
+</html>

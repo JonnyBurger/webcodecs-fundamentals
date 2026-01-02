@@ -98,8 +98,7 @@ const audioTrack = mediaInfo.streams.filter((s)=>s.codec_type_string === 'audio'
 const decoderConfig: AudioDecoderConfig = {
     codec: audioTrack.codec_string,
     sampleRate: audioTrack.sample_rate,
-    numChannels: audioTrack.channels
-
+    numberOfChannels: audioTrack.channels
 }
 
 

@@ -10,24 +10,23 @@ If you're sold on building with WebCodecs, great! I now want to moderate your ex
 Consider this deceptively simple "hello world" example in ~20 lines of code to decode and play a video.
 
 ```typescript
-
-
+import { demuxVideo } from 'webcodecs-utils'
 
 async function playFile(file: File){
 
-    const chunks = <EncodedVideoChunk[]> await getChunks(file);
+    const {chunks, config} =  await demuxVideo(file);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
     const decoder = new VideoDecoder({
         output(frame: VideoFrame) {
             ctx.drawImage(frame, 0, 0);
+            frame.close()
         },
         error(e) {}
     });
 
-    const decoderConfig = <VideoDecoderConfig> getDecoderConfig(file)
-    decoder.configure(decoderConfig);
+    decoder.configure(config);
 
     for (const chunk of chunks){
         deocder.decode(chunks)
@@ -91,7 +90,9 @@ On top of managing the lifecycle of `VideoFrame` objects, you also need to keep 
 You can't just do:
 
 ```typescript
-const chunks = <EncodedVideoChunk[]> await getChunks(file);
+import { getVideoChunks } from 'webcodecs-utils'
+
+const chunks = <EncodedVideoChunk[]> await getVideoChunks(file);
 for (const chunk of chunks){
     deocder.decode(chunks)
 }
