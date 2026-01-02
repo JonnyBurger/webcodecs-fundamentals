@@ -35,19 +35,16 @@ function decodeAudio(chunks: EncodedAudioChunk[], config: AudioDecoderConfig): P
 
     const decodedData: AudioData[] = [];
     const total_chunks = audio.chunks.length;
-    let decoded_chunks = 0;
 
     return new Promise((resolve, reject) => {
-
         if(total_chunks === 0) return resolve(decodedData);
             
         const decoder = new AudioDecoder({
             output: (chunk: AudioData) => {
                 decodedData.push(chunk);
-                decoded_chunks += 1;
-                if(decoded_chunks === total_chunks) return resolve(decodedData);
+                if(decodedData.length === total_chunks) return resolve(decodedData);
             },
-            error: (e) => {console.warn("Error decoding audio", e);}
+            error: (e) => {reject(e)}
         });
     
         decoder.configure({
@@ -112,14 +109,71 @@ const decoderConfig: AudioDecoderConfig = {
 
 
 ### Encoder
-Loop
+
+Likewise, encoding is very simple
+
+```typescript
+
+function encodeAudio(audio: AudioData[]): Promise<EncodedAudioChunk[]>{
+
+    const encoded_chunks: EncodedAudioChunk[] = [];
+
+    return new Promise(async (resolve, reject) => {
+        if(audio.length ===0) return resolve(encoded_chunks);
+
+        const encoder = new AudioEncoder({
+            output: (chunk) => {
+                encoded_chunks.push(chunk);
+                if(encoded_chunks.length === audio.length){
+                    resolve(encoded_chunks);
+                }
+            },
+            error: (e) => { reject(e)},
+        });
+
+        encoder.configure({
+            codec: 'mp4a.40.2', //'mp4a.40.2' for MP4, 'opus' for WebM
+            numberOfChannels: audio[0].numberOfChannels,
+            sampleRate: audio[0].sampleRate
+        });
+
+        for(const chunk of audio){
+            encoder.encode(chunk);
+        }
+        encoder.flush();
+    });
+```
 
 
 
 ### Memory
 
+The main 'production' step you'd need to take into account is memory management. Raw audio is not nearly as big as raw video, but it's still too big to hold several hours of raw audio in memory.
 
-Chunked process
+
+The key would be to limit the amount of `AudioData` in memory at any given time, ideally by processing it in chunks. Here is a very simple example to transcode an audio file in chunks of ~20 seconds.
+
+Let's assume we have the `decodeAudio` and `encodeAudio` functions mentioned above. You can then just process audio in batches like so:
+
+
+```typescript
+
+async function transcodeAudio(sourceChunks: EncodedAudioChunk[], config: AudioDecoderConfig): Promise<EncodedAudioChunk[]> {
+    const BATCH_LENGTH = 1000;
+    const transcoded_chunks: EncodedAudioChunk[] = []; // Initialize here
+
+    for (let i = 0; i < Math.ceil(sourceChunks.length / BATCH_LENGTH); i++) {
+        const batchSourceChunks = sourceChunks.slice(i * BATCH_LENGTH, Math.min((i + 1) * BATCH_LENGTH, sourceChunks.length));
+        const batchAudio = await decodeAudio(batchSourceChunks, config);
+        const batchTranscoded = await encodeAudio(batchAudio);
+        transcoded_chunks.push(...batchTranscoded);
+    }
+    return transcoded_chunks;
+}
+
+```
+
+This minimizes the total memory used at any given time, and lets you work through transcoding hours of audio without crashing the program.
 
 
 
