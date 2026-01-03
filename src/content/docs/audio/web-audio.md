@@ -983,10 +983,397 @@ Here's the complete working example with pause/resume and seek controls:
 
 # Extra functionality
 
-## Gain
+## Volume Control with GainNode
 
-## Speed / playback
+To control volume, we use a `GainNode` which sits between the source and the destination. The gain value ranges from 0 (silent) to 1 (full volume), though you can go higher for amplification.
+
+**Setup**: Create the gain node once when initializing
+
+```typescript
+let gainNode = null;
+
+async function loadAudio() {
+    audioContext = new AudioContext();
+
+    // Create gain node and connect to destination
+    gainNode = audioContext.createGain();
+    gainNode.connect(audioContext.destination);
+    gainNode.gain.value = 0.5; // Start at 50% volume
+
+    // ... rest of audio loading code
+}
+```
+
+**Connect source through gain node**: When playing, connect the source to the gain node instead of directly to the destination
+
+```typescript
+function play() {
+    // ... create source node ...
+
+    // Connect source to gain node (not directly to destination)
+    sourceNode.connect(gainNode);
+
+    // ... start playback ...
+}
+```
+
+**Update volume**: Change the gain value in real-time
+
+```typescript
+function updateVolume(value) {
+    if (!gainNode) return;
+
+    // Convert 0-100 slider to 0-1 gain value
+    const gain = value / 100;
+    gainNode.gain.value = gain;
+}
+```
+
+The gain node persists across source node changes, so you only create it once and all audio flows through it.
+
+Here's the complete example with volume control:
+
+<iframe src="/demo/web-audio/volume-control.html" frameBorder="0" width="720" height="500"></iframe>
+
+<details>
+<summary>Full Source Code</summary>
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebAudio Volume Control</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    h3 {
+      margin-top: 0;
+    }
+    .demo-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    .demo-section h4 {
+      margin-top: 0;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+      border: none;
+      border-radius: 4px;
+      background: #2196f3;
+      color: white;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .stats {
+      font-family: monospace;
+      background: white;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .seek-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+    .volume-control {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      margin: 15px 0;
+      padding: 15px;
+      background: white;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .volume-control label {
+      font-weight: bold;
+      min-width: 60px;
+    }
+    input[type="range"] {
+      flex: 1;
+      min-width: 200px;
+    }
+    .time-display {
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .volume-display {
+      font-family: monospace;
+      font-size: 16px;
+      font-weight: bold;
+      min-width: 40px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <h3>WebAudio Volume Control with GainNode</h3>
+  <p>Using a GainNode to control volume during playback.</p>
+
+  <div class="demo-section">
+    <h4>Playback with Volume Control</h4>
+    <div class="controls">
+      <button id="playBtn">Play</button>
+      <button id="pauseBtn" disabled>Pause</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+
+    <div class="seek-controls">
+      <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1">
+      <span class="time-display">
+        <span id="currentTime">0.0</span> / <span id="duration">0.0</span>s
+      </span>
+    </div>
+
+    <div class="volume-control">
+      <label for="volumeSlider">Volume:</label>
+      <input type="range" id="volumeSlider" min="0" max="100" value="50" step="1">
+      <span class="volume-display"><span id="volumePercent">50</span>%</span>
+    </div>
+
+    <div class="stats">
+      <div>Status: <span id="status">Ready</span></div>
+      <div>Gain Value: <span id="gainValue">0.50</span></div>
+    </div>
+  </div>
+
+  <script>
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const seekBar = document.getElementById('seekBar');
+    const volumeSlider = document.getElementById('volumeSlider');
+
+    const statusEl = document.getElementById('status');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationEl = document.getElementById('duration');
+    const volumePercentEl = document.getElementById('volumePercent');
+    const gainValueEl = document.getElementById('gainValue');
+
+    let audioContext = null;
+    let audioBuffer = null;
+    let sourceNode = null;
+    let gainNode = null;
+
+    // Timeline tracking variables
+    let startTime = 0;
+    let pausedAt = 0;
+    let isPlaying = false;
+    let animationFrameId = null;
+
+    // Load and decode audio file
+    async function loadAudio() {
+      statusEl.textContent = 'Loading...';
+
+      audioContext = new AudioContext();
+
+      // Create gain node
+      gainNode = audioContext.createGain();
+      gainNode.connect(audioContext.destination);
+      gainNode.gain.value = 0.5; // Start at 50% volume
+
+      const response = await fetch('bbb-excerpt.mp3');
+      const arrayBuffer = await response.arrayBuffer();
+
+      audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      const duration = audioBuffer.duration;
+      durationEl.textContent = duration.toFixed(1);
+      seekBar.max = duration;
+
+      statusEl.textContent = 'Ready';
+    }
+
+    // Calculate current playback position
+    function getCurrentTime() {
+      if (!isPlaying) return pausedAt;
+      return pausedAt + (audioContext.currentTime - startTime);
+    }
+
+    // Play from current position
+    function play() {
+      if (!audioBuffer || isPlaying) return;
+
+      // Create new source node
+      sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = audioBuffer;
+
+      // Connect source to gain node (not directly to destination)
+      sourceNode.connect(gainNode);
+
+      // Handle end of playback
+      sourceNode.onended = () => {
+        if (isPlaying) {
+          isPlaying = false;
+          pausedAt = 0;
+          updateUI();
+        }
+      };
+
+      // Start playing from pausedAt position
+      startTime = audioContext.currentTime;
+      sourceNode.start(0, pausedAt);
+
+      isPlaying = true;
+      updateUI();
+      updateTime();
+    }
+
+    // Pause playback
+    function pause() {
+      if (!isPlaying || !sourceNode) return;
+
+      pausedAt = getCurrentTime();
+
+      sourceNode.onended = () => {};
+      sourceNode.stop();
+      sourceNode = null;
+
+      isPlaying = false;
+
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+
+      updateUI();
+    }
+
+    // Stop and reset
+    function stop() {
+      if (sourceNode) {
+        sourceNode.onended = () => {};
+        sourceNode.stop();
+        sourceNode = null;
+      }
+
+      isPlaying = false;
+      pausedAt = 0;
+
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+
+      updateUI();
+    }
+
+    // Seek to specific time
+    function seekTo(time) {
+      const wasPlaying = isPlaying;
+
+      if (isPlaying) {
+        sourceNode.onended = () => {};
+        sourceNode.stop();
+        sourceNode = null;
+        isPlaying = false;
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+      }
+
+      pausedAt = Math.max(0, Math.min(time, audioBuffer.duration));
+
+      if (wasPlaying) {
+        play();
+      } else {
+        updateUI();
+      }
+    }
+
+    // Update volume
+    function updateVolume(value) {
+      if (!gainNode) return;
+
+      // Convert 0-100 slider to 0-1 gain value
+      const gain = value / 100;
+      gainNode.gain.value = gain;
+
+      volumePercentEl.textContent = value;
+      gainValueEl.textContent = gain.toFixed(2);
+    }
+
+    // Update time display
+    function updateTime() {
+      if (!isPlaying) return;
+
+      const current = getCurrentTime();
+      currentTimeEl.textContent = current.toFixed(1);
+      seekBar.value = current;
+
+      animationFrameId = requestAnimationFrame(updateTime);
+    }
+
+    // Update UI state
+    function updateUI() {
+      if (isPlaying) {
+        statusEl.textContent = 'Playing';
+        playBtn.disabled = true;
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+      } else {
+        statusEl.textContent = pausedAt > 0 ? 'Paused' : 'Stopped';
+        playBtn.disabled = false;
+        pauseBtn.disabled = true;
+        stopBtn.disabled = pausedAt === 0;
+      }
+
+      currentTimeEl.textContent = pausedAt.toFixed(1);
+      seekBar.value = pausedAt;
+    }
+
+    // Event listeners
+    playBtn.addEventListener('click', play);
+    pauseBtn.addEventListener('click', pause);
+    stopBtn.addEventListener('click', stop);
+
+    seekBar.addEventListener('input', (e) => {
+      seekTo(parseFloat(e.target.value));
+    });
+
+    volumeSlider.addEventListener('input', (e) => {
+      updateVolume(parseInt(e.target.value));
+    });
+
+    // Load audio on page load
+    loadAudio().catch(err => {
+      console.error('Error loading audio:', err);
+      statusEl.textContent = 'Error: ' + err.message;
+    });
+  </script>
+</body>
+</html>
+```
+
+</details>
+
+## Playback Speed
 
 
-# 
 
