@@ -278,7 +278,9 @@ ctx.close();
 
 # Concrete examples
 
-Now let's build a working audio player step by step. We'll use the Big Buck Bunny audio excerpt as our test file.
+Now let's build a working audio player step by step. We'll use a 14 second audio clip from [Big Buck Bunny](../../reference/easter-eggs)
+
+<audio src="/src/assets/content/audio/audio-data/bbb-excerpt.mp3" controls> </audio>
 
 ## Basic Playback with Start/Stop
 
@@ -366,7 +368,7 @@ function play() {
 
 Here's the complete working example:
 
-<iframe src="/demo/web-audio/basic-playback.html" frameBorder="0" width="720" height="500"></iframe>
+<iframe src="/demo/web-audio/basic-playback.html" frameBorder="0" width="720" height="500" style="height:400px"></iframe>
 
 <details>
 <summary>Full Source Code</summary>
@@ -1373,7 +1375,547 @@ Here's the complete example with volume control:
 
 </details>
 
-## Playback Speed
+## Playback Speed with Pitch Correction
 
+Changing playback speed in Web Audio is tricky because the naive approach (using `playbackRate`) changes both speed and pitch - making fast audio sound like chipmunks and slow audio sound deep. For video players, you need pitch correction so voices sound natural at all speeds.
+
+**The Problem**: Native `playbackRate` changes pitch
+
+```typescript
+// This changes speed BUT also shifts pitch (chipmunk effect)
+sourceNode.playbackRate.value = 2.0; // 2x speed = higher pitch
+```
+
+**The Solution**: Use SoundTouch for pitch correction. SoundTouch is an audio processing library that can change tempo (speed) independently from pitch.
+
+### Loading SoundTouch AudioWorklet
+
+First, load the SoundTouch AudioWorklet module:
+
+```typescript
+let soundTouchLoaded = false;
+
+async function loadSoundTouchWorklet() {
+    try {
+        await audioContext.audioWorklet.addModule(
+            'https://cdn.jsdelivr.net/npm/@soundtouchjs/audio-worklet@0.2.1/dist/soundtouch-worklet.js'
+        );
+        soundTouchLoaded = true;
+    } catch (error) {
+        console.error('Failed to load SoundTouch worklet:', error);
+        soundTouchLoaded = false;
+    }
+}
+```
+
+### Creating and Using SoundTouch Node
+
+Create a SoundTouch processor and set its pitch parameter:
+
+```typescript
+function createSoundTouchNode(playbackSpeed) {
+    if (!soundTouchLoaded) return null;
+
+    try {
+        const node = new AudioWorkletNode(audioContext, 'soundtouch-processor');
+        // Pitch parameter is INVERSE of speed for pitch correction
+        node.parameters.get('pitch').value = 1 / playbackSpeed;
+        return node;
+    } catch (error) {
+        console.error('Failed to create SoundTouch node:', error);
+        return null;
+    }
+}
+```
+
+### Audio Chain Setup
+
+Connect the audio chain: `source -> soundtouch -> destination`
+
+**Important**: You need to set BOTH `playbackRate` on the source AND `pitch` on SoundTouch:
+
+```typescript
+function play() {
+    // Create nodes
+    sourceNode = audioContext.createBufferSource();
+    sourceNode.buffer = audioBuffer;
+    soundTouchNode = createSoundTouchNode(playbackSpeed);
+
+    if (soundTouchNode) {
+        // With pitch correction: source -> soundtouch -> destination
+        sourceNode.connect(soundTouchNode);
+        soundTouchNode.connect(audioContext.destination);
+
+        // Set BOTH playbackRate and pitch
+        sourceNode.playbackRate.value = playbackSpeed;  // Changes actual speed
+        // pitch parameter already set in createSoundTouchNode
+    } else {
+        // Fallback without pitch correction
+        sourceNode.connect(audioContext.destination);
+        sourceNode.playbackRate.value = playbackSpeed;
+    }
+
+    sourceNode.start(0, pausedAt);
+}
+```
+
+### Changing Speed During Playback
+
+To change speed while playing, you need to stop and restart the audio:
+
+```typescript
+function setSpeed(speed) {
+    playbackSpeed = speed;
+
+    if (isPlaying) {
+        const currentTime = getCurrentTime();
+        pause();
+        pausedAt = currentTime;
+        play();  // Creates new nodes with updated speed
+    }
+}
+```
+
+**Why restart?** AudioWorklet parameters can't be changed on-the-fly reliably, and you need to recreate the audio chain with the new pitch setting.
+
+Here's a complete example with multiple speed options:
+
+<iframe src="/demo/web-audio/playback-speed.html" frameBorder="0" width="720" height="550"></iframe>
+
+<details>
+<summary>Full Source Code</summary>
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebAudio Playback Speed with Pitch Correction</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    h3 {
+      margin-top: 0;
+    }
+    .demo-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    .demo-section h4 {
+      margin-top: 0;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+      border: none;
+      border-radius: 4px;
+      background: #2196f3;
+      color: white;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    button.speed-btn {
+      background: #9c27b0;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+    button.speed-btn:hover {
+      background: #7b1fa2;
+    }
+    button.speed-btn.active {
+      background: #4a148c;
+      font-weight: bold;
+    }
+    .stats {
+      font-family: monospace;
+      background: white;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .seek-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+    .speed-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+    input[type="range"] {
+      flex: 1;
+      min-width: 200px;
+    }
+    .time-display {
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h3>WebAudio Playback Speed with Pitch Correction</h3>
+  <p>Using SoundTouch AudioWorklet for pitch-preserving playback speed control.</p>
+
+  <div class="demo-section">
+    <h4>Playback with Speed Control</h4>
+
+    <div class="warning" id="workletWarning" style="display: none;">
+      ⚠️ SoundTouch worklet failed to load. Falling back to native playbackRate (pitch will shift).
+    </div>
+
+    <div class="controls">
+      <button id="playBtn">Play</button>
+      <button id="pauseBtn" disabled>Pause</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+
+    <div class="seek-controls">
+      <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1">
+      <span class="time-display">
+        <span id="currentTime">0.0</span> / <span id="duration">0.0</span>s
+      </span>
+    </div>
+
+    <div class="speed-controls">
+      <span style="font-weight: bold;">Speed:</span>
+      <button class="speed-btn" data-speed="0.5">0.5x</button>
+      <button class="speed-btn active" data-speed="1">1x</button>
+      <button class="speed-btn" data-speed="2">2x</button>
+      <button class="speed-btn" data-speed="4">4x</button>
+    </div>
+
+    <div class="stats">
+      <div>Status: <span id="status">Loading...</span></div>
+      <div>Playback Speed: <span id="speedDisplay">1.0</span>x</div>
+      <div>Using SoundTouch: <span id="soundtouchStatus">Loading...</span></div>
+    </div>
+  </div>
+
+  <script type="module">
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const seekBar = document.getElementById('seekBar');
+    const speedButtons = document.querySelectorAll('.speed-btn');
+
+    const statusEl = document.getElementById('status');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationEl = document.getElementById('duration');
+    const speedDisplayEl = document.getElementById('speedDisplay');
+    const soundtouchStatusEl = document.getElementById('soundtouchStatus');
+    const workletWarningEl = document.getElementById('workletWarning');
+
+    let audioContext = null;
+    let audioBuffer = null;
+    let sourceNode = null;
+    let soundTouchNode = null;
+    let soundTouchLoaded = false;
+
+    // Timeline tracking
+    let startTime = 0;
+    let pausedAt = 0;
+    let isPlaying = false;
+    let animationFrameId = null;
+    let playbackSpeed = 1.0;
+
+    // Load SoundTouch worklet
+    async function loadSoundTouchWorklet() {
+      try {
+        soundtouchStatusEl.textContent = 'Loading...';
+
+        // Load from CDN
+        await audioContext.audioWorklet.addModule(
+          'https://cdn.jsdelivr.net/npm/@soundtouchjs/audio-worklet@0.2.1/dist/soundtouch-worklet.js'
+        );
+
+        soundTouchLoaded = true;
+        soundtouchStatusEl.textContent = 'Yes (pitch correction enabled)';
+        console.log('✅ SoundTouch worklet loaded successfully');
+      } catch (error) {
+        console.error('❌ Failed to load SoundTouch worklet:', error);
+        soundTouchLoaded = false;
+        soundtouchStatusEl.textContent = 'No (using native playbackRate)';
+        workletWarningEl.style.display = 'block';
+      }
+    }
+
+    // Create SoundTouch processor
+    function createSoundTouchNode() {
+      if (!soundTouchLoaded) return null;
+
+      try {
+        const node = new AudioWorkletNode(audioContext, 'soundtouch-processor');
+        // Set pitch parameter (inverse of speed for pitch correction)
+        node.parameters.get('pitch').value = 1 / playbackSpeed;
+        return node;
+      } catch (error) {
+        console.error('❌ Failed to create SoundTouch node:', error);
+        return null;
+      }
+    }
+
+    // Load and decode audio
+    async function loadAudio() {
+      statusEl.textContent = 'Loading audio...';
+
+      audioContext = new AudioContext();
+
+      // Load SoundTouch worklet
+      await loadSoundTouchWorklet();
+
+      const response = await fetch('bbb-excerpt.mp3');
+      const arrayBuffer = await response.arrayBuffer();
+
+      audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      const duration = audioBuffer.duration;
+      durationEl.textContent = duration.toFixed(1);
+      seekBar.max = duration;
+
+      statusEl.textContent = 'Ready';
+    }
+
+    // Calculate current playback position
+    function getCurrentTime() {
+      if (!isPlaying) return pausedAt;
+      return pausedAt + (audioContext.currentTime - startTime) * playbackSpeed;
+    }
+
+    // Play from current position
+    function play() {
+      if (!audioBuffer || isPlaying) return;
+
+      // Create new source node
+      sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = audioBuffer;
+
+      // Create audio chain based on SoundTouch availability
+      if (soundTouchLoaded) {
+        // With SoundTouch: source -> soundtouch -> destination
+        soundTouchNode = createSoundTouchNode();
+        sourceNode.connect(soundTouchNode);
+        soundTouchNode.connect(audioContext.destination);
+        // Set playback rate on source to match speed
+        sourceNode.playbackRate.value = playbackSpeed;
+      } else {
+        // Fallback: source -> destination (pitch will shift)
+        sourceNode.connect(audioContext.destination);
+        sourceNode.playbackRate.value = playbackSpeed;
+      }
+
+      // Handle end of playback
+      sourceNode.onended = () => {
+        if (isPlaying) {
+          isPlaying = false;
+          pausedAt = 0;
+          updateUI();
+        }
+      };
+
+      // Start playing from pausedAt position
+      startTime = audioContext.currentTime;
+      sourceNode.start(0, pausedAt);
+
+      isPlaying = true;
+      updateUI();
+      updateTime();
+    }
+
+    // Pause playback
+    function pause() {
+      if (!isPlaying || !sourceNode) return;
+
+      pausedAt = getCurrentTime();
+
+      sourceNode.onended = () => {};
+      sourceNode.stop();
+      sourceNode = null;
+
+      if (soundTouchNode) {
+        soundTouchNode.disconnect();
+        soundTouchNode = null;
+      }
+
+      isPlaying = false;
+
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+
+      updateUI();
+    }
+
+    // Stop and reset
+    function stop() {
+      if (sourceNode) {
+        sourceNode.onended = () => {};
+        sourceNode.stop();
+        sourceNode = null;
+      }
+
+      if (soundTouchNode) {
+        soundTouchNode.disconnect();
+        soundTouchNode = null;
+      }
+
+      isPlaying = false;
+      pausedAt = 0;
+
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+
+      updateUI();
+    }
+
+    // Seek to specific time
+    function seekTo(time) {
+      const wasPlaying = isPlaying;
+
+      if (isPlaying) {
+        sourceNode.onended = () => {};
+        sourceNode.stop();
+        sourceNode = null;
+
+        if (soundTouchNode) {
+          soundTouchNode.disconnect();
+          soundTouchNode = null;
+        }
+
+        isPlaying = false;
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+      }
+
+      pausedAt = Math.max(0, Math.min(time, audioBuffer.duration));
+
+      if (wasPlaying) {
+        play();
+      } else {
+        updateUI();
+      }
+    }
+
+    // Set playback speed
+    function setSpeed(speed) {
+      playbackSpeed = speed;
+      speedDisplayEl.textContent = speed.toFixed(2);
+
+      // Update button states
+      speedButtons.forEach(btn => {
+        if (parseFloat(btn.dataset.speed) === speed) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // If playing, need to restart with new speed
+      if (isPlaying) {
+        const currentTime = getCurrentTime();
+        pause();
+        pausedAt = currentTime;
+        play();
+      }
+    }
+
+    // Update time display
+    function updateTime() {
+      if (!isPlaying) return;
+
+      const current = getCurrentTime();
+      currentTimeEl.textContent = current.toFixed(1);
+      seekBar.value = current;
+
+      animationFrameId = requestAnimationFrame(updateTime);
+    }
+
+    // Update UI state
+    function updateUI() {
+      if (isPlaying) {
+        statusEl.textContent = 'Playing';
+        playBtn.disabled = true;
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+      } else {
+        statusEl.textContent = pausedAt > 0 ? 'Paused' : 'Stopped';
+        playBtn.disabled = false;
+        pauseBtn.disabled = true;
+        stopBtn.disabled = pausedAt === 0;
+      }
+
+      currentTimeEl.textContent = pausedAt.toFixed(1);
+      seekBar.value = pausedAt;
+    }
+
+    // Event listeners
+    playBtn.addEventListener('click', play);
+    pauseBtn.addEventListener('click', pause);
+    stopBtn.addEventListener('click', stop);
+
+    seekBar.addEventListener('input', (e) => {
+      seekTo(parseFloat(e.target.value));
+    });
+
+    speedButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        setSpeed(parseFloat(btn.dataset.speed));
+      });
+    });
+
+    // Load audio on page load
+    loadAudio().catch(err => {
+      console.error('Error loading audio:', err);
+      statusEl.textContent = 'Error: ' + err.message;
+    });
+  </script>
+</body>
+</html>
+```
+
+</details>
+
+**Key Takeaways:**
+
+- Native `playbackRate` changes both speed and pitch (chipmunk effect)
+- SoundTouch provides pitch correction via AudioWorklet
+- You need BOTH `sourceNode.playbackRate` and `soundTouchNode.parameters.get('pitch')` set
+- The pitch parameter is the **inverse** of speed: `pitch = 1 / playbackSpeed`
+- Changing speed requires stopping and restarting the audio with new nodes
 
 
