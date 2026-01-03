@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebAudio Basic Playback</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    h3 {
+      margin-top: 0;
+    }
+    .demo-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    .demo-section h4 {
+      margin-top: 0;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+      border: none;
+      border-radius: 4px;
+      background: #2196f3;
+      color: white;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .stats {
+      font-family: monospace;
+      background: white;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    audio {
+      width: 100%;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h3>WebAudio Basic Playback</h3>
+  <p>Simple example of playing audio using the Web Audio API.</p>
+
+  <div class="demo-section">
+    <h4>Native Audio Element (for comparison)</h4>
+    <audio controls src="bbb-excerpt.mp3"></audio>
+  </div>
+
+  <div class="demo-section">
+    <h4>Web Audio API</h4>
+    <div class="controls">
+      <button id="playBtn">Play</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+
+    <div class="stats">
+      <div>Status: <span id="status">Ready</span></div>
+      <div>Current Time: <span id="currentTime">0.00</span>s</div>
+      <div>Duration: <span id="duration">0.00</span>s</div>
+    </div>
+  </div>
+
+  <script>
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const statusEl = document.getElementById('status');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationEl = document.getElementById('duration');
+
+    let audioContext = null;
+    let audioBuffer = null;
+    let sourceNode = null;
+
+    // Load and decode audio file
+    async function loadAudio() {
+      statusEl.textContent = 'Loading...';
+
+      // Create AudioContext
+      audioContext = new AudioContext();
+
+      // Fetch audio file
+      const response = await fetch('bbb-excerpt.mp3');
+      const arrayBuffer = await response.arrayBuffer();
+
+      // Decode audio data
+      audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      durationEl.textContent = audioBuffer.duration.toFixed(2);
+      statusEl.textContent = 'Ready';
+    }
+
+    // Play audio
+    function play() {
+      if (!audioBuffer) return;
+
+      // Create source node
+      sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = audioBuffer;
+
+      // Connect to destination (speakers)
+      sourceNode.connect(audioContext.destination);
+
+      // Handle when audio finishes
+      sourceNode.onended = () => {
+        statusEl.textContent = 'Finished';
+        playBtn.disabled = false;
+        stopBtn.disabled = true;
+      };
+
+      // Start playing
+      sourceNode.start();
+
+      statusEl.textContent = 'Playing';
+      playBtn.disabled = true;
+      stopBtn.disabled = false;
+
+      // Update current time display
+      const startTime = audioContext.currentTime;
+      updateTime(startTime);
+    }
+
+    // Stop audio
+    function stop() {
+      if (sourceNode) {
+        sourceNode.stop();
+        sourceNode = null;
+      }
+
+      statusEl.textContent = 'Stopped';
+      playBtn.disabled = false;
+      stopBtn.disabled = true;
+      currentTimeEl.textContent = '0.00';
+    }
+
+    // Update time display
+    function updateTime(startTime) {
+      if (!sourceNode || stopBtn.disabled) return;
+
+      const elapsed = audioContext.currentTime - startTime;
+      currentTimeEl.textContent = elapsed.toFixed(2);
+
+      requestAnimationFrame(() => updateTime(startTime));
+    }
+
+    // Event listeners
+    playBtn.addEventListener('click', play);
+    stopBtn.addEventListener('click', stop);
+
+    // Load audio on page load
+    loadAudio().catch(err => {
+      console.error('Error loading audio:', err);
+      statusEl.textContent = 'Error: ' + err.message;
+    });
+  </script>
+</body>
+</html>

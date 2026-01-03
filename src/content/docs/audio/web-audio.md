@@ -278,13 +278,708 @@ ctx.close();
 
 # Concrete examples
 
-** Basic Playback**
+Now let's build a working audio player step by step. We'll use the Big Buck Bunny audio excerpt as our test file.
 
-** Start/stop, timeline**
+## Basic Playback with Start/Stop
 
+Let's implement basic audio playback with play and stop controls. Here's how to break it down:
 
-** Seek **
+**Load and decode audio**: First we need to load the audio file and decode it into an `AudioBuffer`
 
+```typescript
+let audioContext = null;
+let audioBuffer = null;
+let sourceNode = null;
+
+async function loadAudio() {
+    // Create AudioContext
+    audioContext = new AudioContext();
+
+    // Fetch audio file
+    const response = await fetch('bbb-excerpt.mp3');
+    const arrayBuffer = await response.arrayBuffer();
+
+    // Decode audio data
+    audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+    console.log('Duration:', audioBuffer.duration);
+}
+```
+
+**play()**: To play the audio, we create a source node, connect it to the destination, and start it
+
+```typescript
+function play() {
+    if (!audioBuffer) return;
+
+    // Create source node
+    sourceNode = audioContext.createBufferSource();
+    sourceNode.buffer = audioBuffer;
+
+    // Connect to destination (speakers)
+    sourceNode.connect(audioContext.destination);
+
+    // Handle when audio finishes
+    sourceNode.onended = () => {
+        console.log('Playback finished');
+    };
+
+    // Start playing
+    sourceNode.start();
+}
+```
+
+**stop()**: To stop playback, we call `stop()` on the source node
+
+```typescript
+function stop() {
+    if (sourceNode) {
+        sourceNode.stop();
+        sourceNode = null;
+    }
+}
+```
+
+**Track playback time**: We can track the current playback time using `audioContext.currentTime`
+
+```typescript
+function play() {
+    // ... source node setup code from above ...
+
+    sourceNode.start();
+
+    // Track playback time
+    const startTime = audioContext.currentTime;
+
+    function updateTime() {
+        if (!sourceNode) return;
+
+        const elapsed = audioContext.currentTime - startTime;
+        console.log('Current time:', elapsed.toFixed(2));
+
+        requestAnimationFrame(updateTime);
+    }
+
+    updateTime();
+}
+```
+
+Here's the complete working example:
+
+<iframe src="/demo/web-audio/basic-playback.html" frameBorder="0" width="720" height="500"></iframe>
+
+<details>
+<summary>Full Source Code</summary>
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebAudio Basic Playback</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    h3 {
+      margin-top: 0;
+    }
+    .demo-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    .demo-section h4 {
+      margin-top: 0;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+      border: none;
+      border-radius: 4px;
+      background: #2196f3;
+      color: white;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .stats {
+      font-family: monospace;
+      background: white;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    audio {
+      width: 100%;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h3>WebAudio Basic Playback</h3>
+  <p>Simple example of playing audio using the Web Audio API.</p>
+
+  <div class="demo-section">
+    <h4>Native Audio Element (for comparison)</h4>
+    <audio controls src="bbb-excerpt.mp3"></audio>
+  </div>
+
+  <div class="demo-section">
+    <h4>Web Audio API</h4>
+    <div class="controls">
+      <button id="playBtn">Play</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+
+    <div class="stats">
+      <div>Status: <span id="status">Ready</span></div>
+      <div>Current Time: <span id="currentTime">0.00</span>s</div>
+      <div>Duration: <span id="duration">0.00</span>s</div>
+    </div>
+  </div>
+
+  <script>
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const statusEl = document.getElementById('status');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationEl = document.getElementById('duration');
+
+    let audioContext = null;
+    let audioBuffer = null;
+    let sourceNode = null;
+
+    // Load and decode audio file
+    async function loadAudio() {
+      statusEl.textContent = 'Loading...';
+
+      // Create AudioContext
+      audioContext = new AudioContext();
+
+      // Fetch audio file
+      const response = await fetch('bbb-excerpt.mp3');
+      const arrayBuffer = await response.arrayBuffer();
+
+      // Decode audio data
+      audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      durationEl.textContent = audioBuffer.duration.toFixed(2);
+      statusEl.textContent = 'Ready';
+    }
+
+    // Play audio
+    function play() {
+      if (!audioBuffer) return;
+
+      // Create source node
+      sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = audioBuffer;
+
+      // Connect to destination (speakers)
+      sourceNode.connect(audioContext.destination);
+
+      // Handle when audio finishes
+      sourceNode.onended = () => {
+        statusEl.textContent = 'Finished';
+        playBtn.disabled = false;
+        stopBtn.disabled = true;
+      };
+
+      // Start playing
+      sourceNode.start();
+
+      statusEl.textContent = 'Playing';
+      playBtn.disabled = true;
+      stopBtn.disabled = false;
+
+      // Update current time display
+      const startTime = audioContext.currentTime;
+      updateTime(startTime);
+    }
+
+    // Stop audio
+    function stop() {
+      if (sourceNode) {
+        sourceNode.stop();
+        sourceNode = null;
+      }
+
+      statusEl.textContent = 'Stopped';
+      playBtn.disabled = false;
+      stopBtn.disabled = true;
+      currentTimeEl.textContent = '0.00';
+    }
+
+    // Update time display
+    function updateTime(startTime) {
+      if (!sourceNode || stopBtn.disabled) return;
+
+      const elapsed = audioContext.currentTime - startTime;
+      currentTimeEl.textContent = elapsed.toFixed(2);
+
+      requestAnimationFrame(() => updateTime(startTime));
+    }
+
+    // Event listeners
+    playBtn.addEventListener('click', play);
+    stopBtn.addEventListener('click', stop);
+
+    // Load audio on page load
+    loadAudio().catch(err => {
+      console.error('Error loading audio:', err);
+      statusEl.textContent = 'Error: ' + err.message;
+    });
+  </script>
+</body>
+</html>
+```
+
+</details>
+
+## Seek and Timeline Management
+
+The tricky part of Web Audio is managing pause, resume, and seeking. Since `AudioBufferSourceNode` can't be paused (only started and stopped), we need to track the timeline ourselves.
+
+**Timeline variables**: We'll track where we are in the audio and when we started playing
+
+```typescript
+let startTime = 0;           // When playback started (in AudioContext time)
+let pausedAt = 0;            // Where we paused (in audio file time)
+let isPlaying = false;
+```
+
+**getCurrentTime()**: Calculate the current playback position
+
+```typescript
+function getCurrentTime() {
+    if (!isPlaying) return pausedAt;
+    return pausedAt + (audioContext.currentTime - startTime);
+}
+```
+
+**play()**: Start or resume playback from the current position
+
+```typescript
+function play() {
+    if (!audioBuffer || isPlaying) return;
+
+    // Create new source node
+    sourceNode = audioContext.createBufferSource();
+    sourceNode.buffer = audioBuffer;
+    sourceNode.connect(audioContext.destination);
+
+    // Handle end of playback
+    sourceNode.onended = () => {
+        if (isPlaying) {
+            isPlaying = false;
+            pausedAt = 0;
+        }
+    };
+
+    // Start playing from pausedAt position
+    startTime = audioContext.currentTime;
+    sourceNode.start(0, pausedAt);  // Second parameter is offset in the audio
+
+    isPlaying = true;
+}
+```
+
+**pause()**: Pause playback and remember where we stopped
+
+```typescript
+function pause() {
+    if (!isPlaying || !sourceNode) return;
+
+    // Calculate where we are in the audio
+    pausedAt = getCurrentTime();
+
+    // IMPORTANT: Clear onended handler to prevent it from firing
+    sourceNode.onended = () => {};
+    sourceNode.stop();
+    sourceNode = null;
+
+    isPlaying = false;
+
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+}
+```
+
+**seekTo()**: Jump to a specific time in the audio
+
+```typescript
+function seekTo(time) {
+    const wasPlaying = isPlaying;
+
+    // Stop current playback
+    if (isPlaying) {
+        // IMPORTANT: Clear onended handler before stopping
+        sourceNode.onended = () => {};
+        sourceNode.stop();
+        sourceNode = null;
+        isPlaying = false;
+
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+    }
+
+    // Update position
+    pausedAt = Math.max(0, Math.min(time, audioBuffer.duration));
+
+    // Resume if we were playing
+    if (wasPlaying) {
+        play();
+    }
+}
+```
+
+**Important note**: When stopping a source node that will be replaced (like during pause or seek), you must clear the `onended` handler first. Otherwise, the old source's `onended` callback can fire after the new source starts, resetting your playback state unexpectedly.
+
+Here's the complete working example with pause/resume and seek controls:
+
+<iframe src="/demo/web-audio/seek-timeline.html" frameBorder="0" width="720" height="550"></iframe>
+
+<details>
+<summary>Full Source Code</summary>
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebAudio Seek and Timeline</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    h3 {
+      margin-top: 0;
+    }
+    .demo-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    .demo-section h4 {
+      margin-top: 0;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+      border: none;
+      border-radius: 4px;
+      background: #2196f3;
+      color: white;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    button.seek-btn {
+      background: #ff9800;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+    button.seek-btn:hover {
+      background: #f57c00;
+    }
+    .stats {
+      font-family: monospace;
+      background: white;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .seek-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+    input[type="range"] {
+      flex: 1;
+      min-width: 200px;
+    }
+    .time-display {
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h3>WebAudio Seek and Timeline Management</h3>
+  <p>Implementing pause, resume, and seeking functionality.</p>
+
+  <div class="demo-section">
+    <h4>Playback with Seek Controls</h4>
+    <div class="controls">
+      <button id="playBtn">Play</button>
+      <button id="pauseBtn" disabled>Pause</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+
+    <div class="seek-controls">
+      <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1">
+      <span class="time-display">
+        <span id="currentTime">0.0</span> / <span id="duration">0.0</span>s
+      </span>
+    </div>
+
+    <div class="seek-controls">
+      <span>Jump to:</span>
+      <button class="seek-btn" id="seek0">0s</button>
+      <button class="seek-btn" id="seek5">5s</button>
+      <button class="seek-btn" id="seek10">10s</button>
+    </div>
+
+    <div class="stats">
+      <div>Status: <span id="status">Ready</span></div>
+      <div>AudioContext Time: <span id="ctxTime">0.00</span>s</div>
+      <div>Start Offset: <span id="startOffset">0.00</span>s</div>
+      <div>Pause Time: <span id="pauseTime">0.00</span>s</div>
+    </div>
+  </div>
+
+  <script>
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const seekBar = document.getElementById('seekBar');
+    const seek0Btn = document.getElementById('seek0');
+    const seek5Btn = document.getElementById('seek5');
+    const seek10Btn = document.getElementById('seek10');
+
+    const statusEl = document.getElementById('status');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationEl = document.getElementById('duration');
+    const ctxTimeEl = document.getElementById('ctxTime');
+    const startOffsetEl = document.getElementById('startOffset');
+    const pauseTimeEl = document.getElementById('pauseTime');
+
+    let audioContext = null;
+    let audioBuffer = null;
+    let sourceNode = null;
+
+    // Timeline tracking variables
+    let startTime = 0;           // When playback started (in AudioContext time)
+    let pausedAt = 0;            // Where we paused (in audio file time)
+    let isPlaying = false;
+    let animationFrameId = null;
+
+    // Load and decode audio file
+    async function loadAudio() {
+      statusEl.textContent = 'Loading...';
+
+      audioContext = new AudioContext();
+
+      const response = await fetch('bbb-excerpt.mp3');
+      const arrayBuffer = await response.arrayBuffer();
+
+      audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      const duration = audioBuffer.duration;
+      durationEl.textContent = duration.toFixed(1);
+      seekBar.max = duration;
+
+      statusEl.textContent = 'Ready';
+    }
+
+    // Calculate current playback position
+    function getCurrentTime() {
+      if (!isPlaying) return pausedAt;
+      return pausedAt + (audioContext.currentTime - startTime);
+    }
+
+    // Play from current position
+    function play() {
+      if (!audioBuffer || isPlaying) return;
+
+      // Create new source node
+      sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = audioBuffer;
+      sourceNode.connect(audioContext.destination);
+
+      // Handle end of playback
+      sourceNode.onended = () => {
+        if (isPlaying) {
+          isPlaying = false;
+          pausedAt = 0;
+          updateUI();
+        }
+      };
+
+      // Start playing from pausedAt position
+      startTime = audioContext.currentTime;
+      sourceNode.start(0, pausedAt);
+
+      isPlaying = true;
+      updateUI();
+      updateTime();
+    }
+
+    // Pause playback
+    function pause() {
+      if (!isPlaying || !sourceNode) return;
+
+      // Calculate where we are in the audio
+      pausedAt = getCurrentTime();
+
+      // Clear onended handler to prevent it from firing
+      sourceNode.onended = () => {};
+      sourceNode.stop();
+      sourceNode = null;
+
+      isPlaying = false;
+
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+
+      updateUI();
+    }
+
+    // Stop and reset
+    function stop() {
+      if (sourceNode) {
+        sourceNode.onended = () => {};
+        sourceNode.stop();
+        sourceNode = null;
+      }
+
+      isPlaying = false;
+      pausedAt = 0;
+
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+
+      updateUI();
+    }
+
+    // Seek to specific time
+    function seekTo(time) {
+      const wasPlaying = isPlaying;
+
+      // Stop current playback
+      if (isPlaying) {
+        sourceNode.onended = () => {};
+        sourceNode.stop();
+        sourceNode = null;
+        isPlaying = false;
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+      }
+
+      // Update position
+      pausedAt = Math.max(0, Math.min(time, audioBuffer.duration));
+
+      // Resume if we were playing
+      if (wasPlaying) {
+        play();
+      } else {
+        updateUI();
+      }
+    }
+
+    // Update time display
+    function updateTime() {
+      if (!isPlaying) return;
+
+      const current = getCurrentTime();
+      currentTimeEl.textContent = current.toFixed(1);
+      seekBar.value = current;
+      ctxTimeEl.textContent = audioContext.currentTime.toFixed(2);
+      startOffsetEl.textContent = pausedAt.toFixed(2);
+      pauseTimeEl.textContent = pausedAt.toFixed(2);
+
+      animationFrameId = requestAnimationFrame(updateTime);
+    }
+
+    // Update UI state
+    function updateUI() {
+      if (isPlaying) {
+        statusEl.textContent = 'Playing';
+        playBtn.disabled = true;
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+      } else {
+        statusEl.textContent = pausedAt > 0 ? 'Paused' : 'Stopped';
+        playBtn.disabled = false;
+        pauseBtn.disabled = true;
+        stopBtn.disabled = pausedAt === 0;
+      }
+
+      currentTimeEl.textContent = pausedAt.toFixed(1);
+      seekBar.value = pausedAt;
+      ctxTimeEl.textContent = audioContext ? audioContext.currentTime.toFixed(2) : '0.00';
+      startOffsetEl.textContent = pausedAt.toFixed(2);
+      pauseTimeEl.textContent = pausedAt.toFixed(2);
+    }
+
+    // Event listeners
+    playBtn.addEventListener('click', play);
+    pauseBtn.addEventListener('click', pause);
+    stopBtn.addEventListener('click', stop);
+
+    seekBar.addEventListener('input', (e) => {
+      seekTo(parseFloat(e.target.value));
+    });
+
+    seek0Btn.addEventListener('click', () => seekTo(0));
+    seek5Btn.addEventListener('click', () => seekTo(5));
+    seek10Btn.addEventListener('click', () => seekTo(10));
+
+    // Load audio on page load
+    loadAudio().catch(err => {
+      console.error('Error loading audio:', err);
+      statusEl.textContent = 'Error: ' + err.message;
+    });
+  </script>
+</body>
+</html>
+```
+
+</details>
 
 # Extra functionality
 
