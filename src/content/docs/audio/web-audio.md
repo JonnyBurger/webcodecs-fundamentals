@@ -281,7 +281,7 @@ ctx.close();
 Just keep in mind that raw audio is still quite big with 1 hour of audio taking up more than 1GB of RAM. We don't specifically worry about memory in the examples in this section, but we'll handle memory management when we get to designing [a full video player](../../patterns/playback/).
 
 
-## Concrete examples
+## WebAudio audio player
 
 Now let's build a working audio player step by step. We'll use a 14 second audio clip from [Big Buck Bunny](../../reference/easter-eggs) as a demo.
 
