@@ -24,3 +24,6 @@ pnpm-debug.log*
 
 # Codec test results
 codec_results/
+
+
+Gruntfile.cjs
