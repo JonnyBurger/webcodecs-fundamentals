@@ -1,34 +1,3 @@
----
-// Override the default ThemeProvider to default to light mode
-import StarlightThemeProvider from '@astrojs/starlight/components/ThemeProvider.astro';
----
-
-<StarlightThemeProvider {...Astro.props} />
-
 <script is:inline>
-  // Override the default theme to light
-  const StarlightThemeProvider = (() => {
-    const themeKey = 'starlight-theme';
-    const stored = typeof localStorage !== 'undefined' && localStorage.getItem(themeKey);
-    // Default to 'light' instead of using system preference
-    return {
-      updatePickers(theme = stored || 'light') {
-        document.querySelectorAll('starlight-theme-select').forEach((picker) => {
-          const select = picker.querySelector('select');
-          if (select) select.value = theme === 'auto' ? 'light' : theme;
-        });
-      },
-      setTheme(theme) {
-        if (theme === 'auto') theme = 'light'; // Force light for auto
-        document.documentElement.dataset.theme = theme;
-        this.updatePickers(theme);
-      },
-      init() {
-        this.setTheme(stored || 'light');
-        window.addEventListener('load', () => this.updatePickers());
-      }
-    };
-  })();
-
-  StarlightThemeProvider.init();
+document.documentElement.dataset.theme = 'light'
 </script>

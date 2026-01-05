@@ -4,6 +4,15 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
+
+	markdown: {
+		shikiConfig: {
+		  theme: 'github-light',
+		  themes: {
+			light: 'github-light'
+		  },
+		},
+	  },
 	server: {
 	
 	        allowedHosts: ['katana.ngrok.dev', 'localhost', '192.168.1.100'],
@@ -14,6 +23,9 @@ export default defineConfig({
 	},
 	integrations: [
 		starlight({
+			components: {
+				ThemeProvider: './src/components/ThemeProvider.astro',
+			  },
 			title: 'WebCodecs Fundamentals',
 			description: 'The missing manual for the WebCodecs API - from basics to production patterns.',
 			tableOfContents: false,
