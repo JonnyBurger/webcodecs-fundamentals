@@ -1766,7 +1766,7 @@ export class Clock extends EventEmitter {
 
 #### Player
 
-Finally, we'll include the player interface as described previously, which will instantiate all the components, and expose the pause/play/seek methods as well as avent handlers via the `on` listener (which passes through to the Clock);
+Finally, we'll include the player interface as described previously, which will instantiate all the components, and expose the pause/play/seek methods as well as avent handlers via the `on` listener (which passes through to the Clock), so that it we can build a UI around it.
 
 <details>
 
@@ -1927,6 +1927,15 @@ export default WebCodecsPlayer;
 
 </details>
 
+We'll also expose `getCurrentTime()` and `player.duration` which we'll need for the playback progress bar for a UI.
 
 ## Demo
 
+Now that we've built the player, we can go ahead and vibe-code a simple player interface, which will load a video file, or a demo video (Big Buck Bunny) and verify playback works.
+
+<iframe src="/demo/player/index.html" frameBorder="0" width="720" style="height: 860px;" ></iframe>
+
+
+You can see the full source code for the player [here](https://github.com/sb2702/webcodecs-examples/tree/main/src/player). You can see the source code for the demo here ([html](/demo/player/index.html), [js](/demo/player/demo.js))
+
+Now we've got a full working webcodecs based video player, and hopefully that provides enough structure to get started with video playback and adapt to your own use case.

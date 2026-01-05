@@ -1,8 +1,7 @@
-// Note: This demo uses a bundled version of webcodecs-examples
-// In a real project, you would import: import { WebCodecsPlayer } from 'webcodecs-examples';
-
-// For this static demo, we need to use the built version or include via a bundler
 // Let's create a simple implementation that shows how to use the player
+// CDN import 
+import {WebCodecsPlayer} from 'https://unpkg.com/webcodecs-examples@0.1.3/dist/index.js';
+// Use import {WebCodecsPlayer} from 'webcodecs-examples' when using npm install
 
 let player = null;
 
@@ -181,6 +180,61 @@ async function setupVideoControls(videoPlayer) {
   });
 }
 
+async function downloadDemoVideo() {
+  const url = 'https://katana-misc-files.s3.us-east-1.amazonaws.com/videos/bbb-fixed.mp4';
+  const progressContainer = document.getElementById('progressContainer');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+
+  try {
+    progressContainer.style.display = 'block';
+    progressText.textContent = 'Downloading demo video...';
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Download failed');
+
+    const contentLength = response.headers.get('content-length');
+    const total = parseInt(contentLength, 10);
+    let loaded = 0;
+
+    const reader = response.body.getReader();
+    const chunks = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chunks.push(value);
+      loaded += value.length;
+
+      const progress = (loaded / total) * 100;
+      progressBar.style.width = progress + '%';
+      progressText.textContent = `Downloading: ${Math.round(progress)}% (${(loaded / 1024 / 1024).toFixed(1)} MB / ${(total / 1024 / 1024).toFixed(1)} MB)`;
+    }
+
+    // Combine chunks into single ArrayBuffer
+    const arrayBuffer = new Uint8Array(loaded);
+    let position = 0;
+    for (const chunk of chunks) {
+      arrayBuffer.set(chunk, position);
+      position += chunk.length;
+    }
+
+    progressText.textContent = 'Download complete! Creating file...';
+
+    // Convert ArrayBuffer to File
+    const blob = new Blob([arrayBuffer], { type: 'video/mp4' });
+    const file = new File([blob], 'demo-video.mp4', { type: 'video/mp4' });
+
+    progressContainer.style.display = 'none';
+    return file;
+  } catch (error) {
+    progressContainer.style.display = 'none';
+    console.error('Error downloading demo video:', error);
+    throw error;
+  }
+}
+
 async function onFileSelected(file) {
   console.log('File selected:', file.name, file.type, file.size);
 
@@ -189,7 +243,7 @@ async function onFileSelected(file) {
   try {
     // Import the WebCodecsPlayer from npm via CDN
     // Once published to npm, this will load from esm.sh
-    const { WebCodecsPlayer } = await import('https://unpkg.com/webcodecs-examples@0.1.3/dist/index.js');
+
 
     player = new WebCodecsPlayer({ src: file, canvas });
 
@@ -204,20 +258,39 @@ async function onFileSelected(file) {
   }
 }
 
-// Set up file picker button
+// Set up file picker buttons
 document.addEventListener('DOMContentLoaded', () => {
-  const button = document.getElementById('loadFileBtn');
+  const loadFileBtn = document.getElementById('loadFileBtn');
+  const loadDemoBtn = document.getElementById('loadDemoBtn');
 
-  button.addEventListener('click', async () => {
+  loadFileBtn.addEventListener('click', async () => {
     try {
       const file = await getFileWithPermission();
       await onFileSelected(file);
-      button.style.display = 'none';
+      loadFileBtn.style.display = 'none';
+      loadDemoBtn.style.display = 'none';
     } catch (error) {
       console.error('Failed to load video:', error);
       if (error.name !== 'AbortError') { // User cancelled
         alert('Failed to load video: ' + error.message);
       }
+    }
+  });
+
+  loadDemoBtn.addEventListener('click', async () => {
+    loadFileBtn.disabled = true;
+    loadDemoBtn.disabled = true;
+
+    try {
+      const file = await downloadDemoVideo();
+      await onFileSelected(file);
+      loadFileBtn.style.display = 'none';
+      loadDemoBtn.style.display = 'none';
+    } catch (error) {
+      console.error('Failed to load demo video:', error);
+      alert('Failed to load demo video: ' + error.message);
+      loadFileBtn.disabled = false;
+      loadDemoBtn.disabled = false;
     }
   });
 });
