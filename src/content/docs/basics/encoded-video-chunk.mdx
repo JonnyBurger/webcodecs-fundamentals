@@ -9,7 +9,7 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 The `EncodedVideoChunk` class, the other main type in WebCodecs, repesents the compressed (or "encoded") version of a single `VideoFrame`.
 
 
-![](/src/assets/content/basics/chunks/encoded-chunk.svg)
+![](/assets/basics/chunks/encoded-chunk.svg)
 
 The `EncodedVideoChunk` contains binary data (the encoded `VideoFrame`) and some metadata, and there is a 1:1 correspondence between `EncodedVideoChunk` and `VideoFrame` objects - if you encode 100 `VideoFrame` objects, you should expect 100 `EncodedVideoChunk` objects from the encoder.
 
@@ -111,7 +111,7 @@ self.addEventListener('message', (e) => {
 Here's a quick animation to visualize the data flow:
 
 <video width="640" height="480" loop muted autoplay>
-  <source src="/src/assets/content/basics/chunks/raw-frames-animation.webm" type="video/webm" />
+  <source src="/assets/basics/chunks/raw-frames-animation.webm" type="video/webm" />
   Your browser does not support the video tag.
 </video>
 
@@ -188,7 +188,7 @@ self.addEventListener('message', (e) => {
 Here's what the deta flow looks like when adding in the encoder/decoder.
 
 <video width="640" height="480" loop muted autoplay>
-  <source src="/src/assets/content/basics/chunks/encoded-chunks-animation.webm" type="video/webm" />
+  <source src="/assets/basics/chunks/encoded-chunks-animation.webm" type="video/webm" />
   Your browser does not support the video tag.
 </video>
 
@@ -209,24 +209,24 @@ Consider again one of the simplest possible videos:
 
 <br/>
 
-<img src="/src/assets/content/basics/codecs/bouncing-ball.gif" alt="drawing"  style="margin:auto;" width="300"/>
+<img src="/assets/basics/codecs/bouncing-ball.gif" alt="drawing"  style="margin:auto;" width="300"/>
 
 
 If you look at any two consecutive frames, these frames are pretty similar, with most of the pixels actually being identical.
 
-![](/src/assets/content/basics/chunks/frame-diff-1.png)
+![](/assets/basics/chunks/frame-diff-1.png)
 
 You might be able to imagine how, with some clever engineering, you could formulate a way to calculate just the difference between these frames (e.g. what changes from frame 1 to frame 2).
 
-![](/src/assets/content/basics/chunks/frame-diff-2.png)
+![](/assets/basics/chunks/frame-diff-2.png)
 
 That way you don't actually need to even store frame 2, you just need to store the first frame, and then store the difference between frame 1 and frame 2 to be able to reconstruct frame 2.
 
-![](/src/assets/content/basics/chunks/frame-diff-3.png)
+![](/assets/basics/chunks/frame-diff-3.png)
 
 To send a full video, you could send the first frame (called a *key frame*), and then just keep sending "frame differences" (called *delta frames*)
 
-![](/src/assets/content/basics/chunks/frame-diff-4.png)
+![](/assets/basics/chunks/frame-diff-4.png)
 
 This is exacly what real-world codecs do, with delta frames typically being 2x to 10x smaller than key frames [[do the study, make the citation](./tbd))].
 

@@ -91,7 +91,7 @@ To transcode a file, you would typically take in a user supplied `File` object o
 
 A very simplified example might look like this:
 
-![](/src/assets/content/basics/offscreen/transcoding-arch.svg)
+![](/assets/basics/offscreen/transcoding-arch.svg)
 
 Where all the muxing, `VideoEncoder`, `VideoDecoder` and everything else is done on the worker thread. We'll cover actual real-world examples [subsequent sections](../../patterns/transcoding).
 
@@ -99,7 +99,7 @@ Where all the muxing, `VideoEncoder`, `VideoDecoder` and everything else is done
 
 Building a video player is quite a bit more complex, but here's the simplest version of how an offscreen / main thread architecture might look.
 
-![](/src/assets/content/basics/offscreen/player.png)
+![](/assets/basics/offscreen/player.png)
 
 
 Where the `OffscreenCanvas` and `File` are sent to the worker thread on initialization, and the `VideoDecoder` and render logic are implemented in the worker thread, while audio info is returned to the main thread, and the audio player (implemented with WebAudio) dictate current time, which is sent to the worker thread on every render cycle to render the next frame at current time.

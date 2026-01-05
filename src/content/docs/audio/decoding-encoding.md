@@ -5,7 +5,7 @@ description: Encoding and decoding audio
 
 Just as with video, the WebCodecs for audio is designed to transform compressed audio into raw audio and vice versa.
 
-![](/src/assets/content/audio/encode-decode/simplified-2.svg)
+![](/assets/audio/encode-decode/simplified-2.svg)
 
 
 Specifically, the `AudioDecoder` tansforms `EncodedAudioChunk` objects into `AudioData`, and the `AudioEncoder` transforms `AudioData` into `EncodedAudioChunk` objects, and when decoding and encoding, there will be a 1:1 correspondence between `EncodedAudioChunk` objects and`AudioData` objects.
@@ -20,7 +20,7 @@ Encoding and Decoding is significantly easier for audio than it is for video for
 
 This all makes is so that encoding and decoding can be done as simple async process that you can await.
 
-![](/src/assets/content/audio/encode-decode/web-audio-assembly-line.svg)
+![](/assets/audio/encode-decode/web-audio-assembly-line.svg)
 
 This makes pipelines more predictable and easy to work with.
 

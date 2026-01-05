@@ -37,7 +37,7 @@ const blob = new Blob([arrayBuffer], {type: 'video/mp4'});
 
 When a video player reads a video file for playback, it needs more info than just encoded video frames and encoded audio, it needs metadata about the video, such as the tracks, video duration, frame rate, resolution, etc..
 
-![](/src/assets/content/basics/muxing/video-container.png)
+![](/assets/basics/muxing/video-container.png)
 
 It also need to have enough info to tell the video player where each encoded chunk is in the source file.
 

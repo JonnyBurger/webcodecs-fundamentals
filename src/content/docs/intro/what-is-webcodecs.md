@@ -14,7 +14,7 @@ At it's most fundamental level, the WebCodecs API can boil down to two interface
 The core API for WebCodecs looks deceptively simple:
 
 
-![](/src/assets/content/basics/what-is-webcodecs/simplified.svg)
+![](/assets/basics/what-is-webcodecs/simplified.svg)
 
 Where the decoder and encoder are just processors that transform `EncodedVideoChunk` objects into `VideoFrame` objects and vice versa.
 

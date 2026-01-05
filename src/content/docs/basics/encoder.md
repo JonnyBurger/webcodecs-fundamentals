@@ -6,12 +6,12 @@ description: Why WebCodecs is harder than it looks
 
 The `VideoEncoder` allows transforming [VideoFrame](./video-frame) objects into [EncodedVideoChunk](./encoded-video-chunk) objects allowing you to write rendered / raw video frames to a compressed/encoded video stream or file.
 
-![](/src/assets/content/basics/encoder/video-encoder.png)
+![](/assets/basics/encoder/video-encoder.png)
 
 The `VideoEncoder` is the mirror operation to the `VideoDecoder`, but unlike decoding, where `EncodedVideoChunk` already has metadata (like codec, framerate, timestamps) from the video source...
 
 
-![](/src/assets/content/basics/what-is-webcodecs/simplified.svg)
+![](/assets/basics/what-is-webcodecs/simplified.svg)
 
 ... when using a `VideoEncoder`, your application needs to supply a lot of the metadata (like codec, framerate and timestamps) to the encoder and frames. 
 
@@ -91,19 +91,19 @@ Here's an visualization of how bitrate affects quality, with the same [1080p fil
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 600px;">
   <div style="text-align: center;">
-    <img src="/src/assets/content/basics/encoder/jellyfish_300k_crop.png" alt="300 kbps">
+    <img src="/assets/basics/encoder/jellyfish_300k_crop.png" alt="300 kbps">
     <p><strong>300 kbps</strong></p>
   </div>
   <div style="text-align: center;">
-    <img src="/src/assets/content/basics/encoder/jellyfish_1M_crop.png" alt="1 Mbps">
+    <img src="/assets/basics/encoder/jellyfish_1M_crop.png" alt="1 Mbps">
     <p><strong>1 Mbps</strong></p>
   </div>
   <div style="text-align: center;">
-    <img src="/src/assets/content/basics/encoder/jellyfish_3M_crop.png" alt="3 Mbps">
+    <img src="/assets/basics/encoder/jellyfish_3M_crop.png" alt="3 Mbps">
     <p><strong>3 Mbps</strong></p>
   </div>
   <div style="text-align: center;">
-    <img src="/src/assets/content/basics/encoder/jellyfish_10M_crop.png" alt="10 Mbps">
+    <img src="/assets/basics/encoder/jellyfish_10M_crop.png" alt="10 Mbps">
     <p><strong>10 Mbps</strong></p>
   </div>
 </div>
@@ -247,7 +247,7 @@ Encoding performance varies dramatically across devices and browsers, and is in 
 
 Much like the [VideoDecoder](../video-decoder), you shouldn't think of the `encode()` function as some async task, it's better to treat the encoder as a [Rube-Goldberg machine](https://en.wikipedia.org/wiki/Rube_Goldberg_machine), where you continuously feed frames, feeding frames in pushes the process along, and encoded chunks come out the other end.
 
-![](/src/assets/content/basics/encoder/rube-goldber-encoder.png)
+![](/assets/basics/encoder/rube-goldber-encoder.png)
 
 You might need to feed in a few frames before the encoder starts outputing chunks, and when you've finished feeding frames, the last few chunks might get 'stuck' (because there's nothing to push the frames along), requiring a call to `encoder.flush()`
 
@@ -256,7 +256,7 @@ You might need to feed in a few frames before the encoder starts outputing chunk
 
 Building an encoder in isolation is all good and well, but if the source of your video frames is, at some point, video from a `VideoDecoder` (as in transcoding), you are now chaining a `VideoDecoder` and a `VideoEncoder` together. 
 
-![](/src/assets/content/basics/encoder/rube-goldberg-2.png)
+![](/assets/basics/encoder/rube-goldberg-2.png)
 
 This makes things complicated because now you have two machines which can both get stuck, and keeping track of frames and chunks becomes more challenging.
 
@@ -271,7 +271,7 @@ Some of this gets easier with libraries like [MediaBunny](../../media-bunny/intr
 
 If you have some type of rendering pipeline involving WebGPU or WebGL (such as in a video editing application), you'd be feeding one or more video frames from the decoder into a rendering pipeline, the output of which would then go into an encoder.
 
-![](/src/assets/content/basics/encoder/rube-goldberg-3.png)
+![](/assets/basics/encoder/rube-goldberg-3.png)
 
 
 Fortunately, because rendering can be treated like a simple async task, it doesn't add much complexity to the overall pipeline. Just keep in mind:

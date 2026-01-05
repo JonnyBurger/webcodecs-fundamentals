@@ -5,7 +5,7 @@ description: Why WebCodecs is harder than it looks
 
 The `VideoDecoder` allows transforming [EncodedVideoChunk](./encoded-video-chunk) objects into [VideoFrame](./video-frame) objects, allowing you to read and render raw video frames from a video file or video stream.
 
-![](/src/assets/content/basics/decoder/video-decoder.png)
+![](/assets/basics/decoder/video-decoder.png)
 
 
 The basic "hello world" API for the decoder works like this:
@@ -112,7 +112,7 @@ Because decoding isn't just some compute-heavy function. The `VideoDecoder` is a
 
 It might be easier to visualize the decoder as like a [Rube-Goldberg machine](https://en.wikipedia.org/wiki/Rube_Goldberg_machine), where you continuously feed in chunks to decode, and video frames come out the other end.
 
-![](/src/assets/content/basics/decoder/rube-goldberg.png)
+![](/assets/basics/decoder/rube-goldberg.png)
 
 You don't need to know how it works internally, but you do need to feed a few chunks to get it started, processing is non-linear, and you get frames when you get them.
 
@@ -141,7 +141,7 @@ As you send more chunks for decoding, it 'pushes' the chunks inside the decoder 
 
 A consequence of this is that frames can sometimes get stuck. If you send all your chunks for decoding, and you have no more 'chunks' to push the decoder along, the last few frames may never generate.
 
-![](/src/assets/content/basics/decoder/rube-goldberg-2.png)
+![](/assets/basics/decoder/rube-goldberg-2.png)
 
 The solution is to call `decoder.flush()` which will force everything along, with the limitation that when you do this, the next chunk that you send for processing needs to be a *key frame* (`chunk.type === 'key'`) or the decoder will throw an error.
 

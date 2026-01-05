@@ -5,7 +5,7 @@ description: Why WebCodecs is harder than it looks
 
 The `EncodedAudioChunk`, as you might guess, is the encoded / compressed form of an `AudioData` object.
 
-![](/src/assets/content/audio/encoded-audio-chunk/encoded-chunk.svg)
+![](/assets/audio/encoded-audio-chunk/encoded-chunk.svg)
 
 Encoded audio is typically 15 to 20 times more compact that ran audio. Compared to video, raw audio is more compact, encoded audio is much more compact and encoding/decoding is both computationally much easier and much faster.
 

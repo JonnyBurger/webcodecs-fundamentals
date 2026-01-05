@@ -27,7 +27,7 @@ for (const frame of frames){
 
 In WebAudio, you need to think of audio processing as a pipeline, with *sources*, *destinations* and *nodes* (intermemediate effects / filters).
 
-![](/src/assets/content/audio/web-audio/pipeline.svg)
+![](/assets/audio/web-audio/pipeline.svg)
 
 Where `GainNode` just multiplies the audio signal by a constant (volume control), which is the simplest filter you can add. Here is what this pipeline actually looks like in code:
 
@@ -72,7 +72,7 @@ const ctx = new AudioContext();
 
 WebAudio works as a 'graph', where you have a destination, one or more sources, and intermediate processing items called *nodes* that you connect together.
 
-![](/src/assets/content/audio/web-audio/pipeline.svg)
+![](/assets/audio/web-audio/pipeline.svg)
 
 
 The `AudioContext` is actually an instance of an individual graph, but is also the interface for a bunch of other things like creating nodes and decoding audio.
@@ -151,7 +151,7 @@ gainNode.connect(ctx.destination);
 That creates the following pipeline we started with:
 
 
-![](/src/assets/content/audio/web-audio/pipeline.svg)
+![](/assets/audio/web-audio/pipeline.svg)
 
 
 ### Play/pause
@@ -245,7 +245,7 @@ But then it's up to you to do those calculations. Presumably as the application 
 
 So let's say you create an `AudioBuffer` 10 seconds after the `AudioContext` is created. The `AudioBuffer` corresponds to a 15 second clip, and you plan to play just 3 seconds of audio, corresponding to `t=5` to `t=8`  in the source audio file.
 
-![](/src/assets/content/audio/web-audio/timeline.svg)
+![](/assets/audio/web-audio/timeline.svg)
 
 You're now working with multiple timelines, including (a) the `AudioContext` timeline, (b) the source audio file timeline, and (c) the timeline you want to display to users. It's up to you to keep track of the different timelines, and calculate offsets as necessary.
 
@@ -290,7 +290,7 @@ Just keep in mind that raw audio is still quite big with 1 hour of audio taking 
 
 Now let's build a working audio player step by step. We'll use a 14 second audio clip from [Big Buck Bunny](../../reference/easter-eggs) as a demo.
 
-<audio src="/src/assets/content/audio/audio-data/bbb-excerpt.mp3" controls> </audio>
+<audio src="/assets/audio/audio-data/bbb-excerpt.mp3" controls> </audio>
 
 ### Basic Playback with Start/Stop
 

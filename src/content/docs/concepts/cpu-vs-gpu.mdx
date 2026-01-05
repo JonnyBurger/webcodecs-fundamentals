@@ -37,7 +37,7 @@ The reason that all the video-related Web APIs use the graphics card is because 
 
 An mostly* accurate view of a generalized consumer device system might look like this:
 
-![](/src/assets/content/basics/cpu/system.svg)
+![](/assets/basics/cpu/system.svg)
 
 
 \*  In reality, integrated graphics cards actually do use the same physical RAM device as the CPU, but the operating system reserves a portion for the graphics card, and the graphics card manages the memory seperately, and often use different cacheing/storage mechanisms so that, for practical purposes, GPU memory and CPU memory act as seperate stores, requiring CPU cycles and data copies to move data between GPU and the CPU [[1](https://people.ece.ubc.ca/sasha/papers/ismm-2017.pdf)][[2](https://gpuweb.github.io/gpuweb/explainer/#:~:text=2.2.&text=When%20using%20a%20discrete%20GPU,process%20and%20the%20content%20process.)][[3](https://www.w3.org/2021/03/media-production-workshop/talks/paul-adenot-webcodecs-performance.html)].
@@ -97,7 +97,7 @@ For somone just getting started, it might be hard to just read a long table full
 While not part of WebCodecs per se, if you are transcoding a user-uploaded video, the first step would be to read the contents from disk into RAM as an array buffer, using `file.arrayBuffer()` or one of several other [file reading methods](https://developer.mozilla.org/en-US/docs/Web/API/FileReader), and when you do this, the data flow looks like this:
 
 <video width="640" height="480" loop muted autoplay>
-  <source src="/src/assets/content/basics/cpu/file-read.webm" type="video/webm" />
+  <source src="/assets/basics/cpu/file-read.webm" type="video/webm" />
   Your browser does not support the video tag.
 </video>
 
@@ -107,7 +107,7 @@ While not part of WebCodecs per se, if you are transcoding a user-uploaded video
 The next step is Demuxing (extracting `EncodedVideoChunk` objects from the file (array buffer)), we'll get to it [later](../../basics/muxing), but overall it's just a data transformation, taking slices of the array buffer, and adding metadata to construct each `EncodedVideoChunk` which then becomes an object in RAM.
 
 <video width="640" height="480" loop muted autoplay>
-  <source src="/src/assets/content/basics/cpu/demuxer.webm" type="video/webm" />
+  <source src="/assets/basics/cpu/demuxer.webm" type="video/webm" />
   Your browser does not support the video tag.
 </video>
 
@@ -117,7 +117,7 @@ The next step is Demuxing (extracting `EncodedVideoChunk` objects from the file 
 When you set up a `VideoDeocder` and start sending chunks via `decoder.decode()`, it will send the chunks from RAM into the graphics card's specialized Video Decoder module (assuming hardware acceleration).
 
 <video width="640" height="480" loop muted autoplay>
-  <source src="/src/assets/content/basics/cpu/decode.webm" type="video/webm" />
+  <source src="/assets/basics/cpu/decode.webm" type="video/webm" />
   Your browser does not support the video tag.
 </video>
 
@@ -127,7 +127,7 @@ When you set up a `VideoDeocder` and start sending chunks via `decoder.decode()`
 While rendering isn't a step in transcoding, I'll include it here anyway. There's a number of ways you can render a `VideoFrame` to a `canvas` / the deplay, which will be covered [here](../../basics/rendering), but following best practices of using methods like `importExternalTexture` will send each `VideoFrame` in the most efficient way through the graphics processor to the final display.
 
 <video width="640" height="480" loop muted autoplay>
-  <source src="/src/assets/content/basics/cpu/render.webm" type="video/webm" />
+  <source src="/assets/basics/cpu/render.webm" type="video/webm" />
   Your browser does not support the video tag.
 </video>
 
@@ -136,7 +136,7 @@ While rendering isn't a step in transcoding, I'll include it here anyway. There'
 Encoding is the mirror image of Decoding, following the reverse path of sending `VideoFrame` objects through the Encoder / Decoder, through the CPU and back into RAM. The main substantive difference is that encoding requires far more compute than encoding.
 
 <video width="640" height="480" loop muted autoplay>
-  <source src="/src/assets/content/basics/cpu/encode.webm" type="video/webm" />
+  <source src="/assets/basics/cpu/encode.webm" type="video/webm" />
   Your browser does not support the video tag.
 </video>
 
@@ -145,7 +145,7 @@ Encoding is the mirror image of Decoding, following the reverse path of sending 
 Finally, muxing is the mirror image of demuxing, taking `EncodedVideoChunk` data and placing it in the right location of the outgoing `ArrayBuffer` (or file, or stream) which represents the transcoded video which can actually be played back by other video players.
 
 <video width="640" height="480" loop muted autoplay>
-  <source src="/src/assets/content/basics/cpu/demuxer.webm" type="video/webm" />
+  <source src="/assets/basics/cpu/demuxer.webm" type="video/webm" />
   Your browser does not support the video tag.
 </video>
 

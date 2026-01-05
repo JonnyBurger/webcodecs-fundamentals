@@ -57,7 +57,7 @@ Handbrake is great that it's free an open source, but it does require (1) instal
 
 If you search "Convert WebM to MP4", many search engines will show results like [Free Convert](https://www.freeconvert.com/webm-to-mp4) but, because the service is server based, they (1) Have strict limits, (2) often have advertising to compensate for server-costs.
 
-![](/src/assets/content/basics/what-is-webcodecs/free-convert.png)
+![](/assets/basics/what-is-webcodecs/free-convert.png)
 
 
 **WebCodecs option**:
@@ -65,7 +65,7 @@ If you search "Convert WebM to MP4", many search engines will show results like 
 Compared to both, consider [Remotion convert](https://www.remotion.dev/convert), a simple webcodecs based video conversion tool. There is nothing to install, it has no ads, it has a great UI/UX and it just works.
 
 
-![](/src/assets/content/basics/what-is-webcodecs/webcodecs.png)
+![](/assets/basics/what-is-webcodecs/webcodecs.png)
 
 By combining the best of both worlds, WebCodecs enables building video experiences that are simple to use, good quality and essentially free to operate.
 

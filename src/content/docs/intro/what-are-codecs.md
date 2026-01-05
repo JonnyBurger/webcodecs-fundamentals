@@ -14,11 +14,11 @@ The reason we even need a "codec" is because raw video is impractically large, e
 
 Consider the simplest possible video, a simple bouning ball:
 
-![](/src/assets//content//basics/codecs/bouncing-ball.gif)
+![](/assets/basics/codecs/bouncing-ball.gif)
 
 This video is made of 8 different frames which are looped, with each frame looking like this:
 
-![](/src/assets//content//basics/codecs/pixels.svg)
+![](/assets/basics/codecs/pixels.svg)
 
 This "video" is essentially 24 pixels by 13 pixels, and each pixel is represented by an RGB color value, where the value for each color is typically represented as 8-bit integer (a byte).
 

@@ -5,7 +5,7 @@ description: Codecs and codec strings
 
 Codecs are the algorithms for turning raw video frames into compact binary encoded video data.
 
-![](/src/assets/content/basics/codecs/codec.png)
+![](/assets/basics/codecs/codec.png)
 
 
 We won't go into how these algorithms actually work (video compression is it's own big-buck-bunny-sized rabbit hole) but this article will cover the practical basics that you need to know as a developer building a WebCodecs application.

@@ -4,7 +4,7 @@ description: High level architectural explanation of how to build a video player
 ---
 
 
-![](/src/assets/content/patterns/player/webcodecs-player.png)
+![](/assets/patterns/player/webcodecs-player.png)
 
 In the [Video Decoder](../../basics/decoder) section, we showed how to to build a [video decoding loop](../../basics/decoder#decoding-loop) in WebCodecs.
 
@@ -106,7 +106,7 @@ clock.on('tick', function(time: number){ /** Do whatever */})
 
 Putting them together, we have a Clock object which regularly polls the current time from the audio render, and calls the render() function of the video renderer on every call of `tick`.
 
-![](/src/assets/content/patterns/player/player-architecture-0.svg)
+![](/assets/patterns/player/player-architecture-0.svg)
 
 This will be the core of our render loop, to play both audio and video back in sync.
 
@@ -121,7 +121,7 @@ In the previous hello world examples, we just loaded the entire video's worth of
  What we can do is to create a standalone file reader / demuxer, which we instantiate with a `File` handle, and from which we can extract track data and audio/video track segments.
 
 
-![](/src/assets/content/patterns/player/player-architecture-1.svg)
+![](/assets/patterns/player/player-architecture-1.svg)
 
 
 #### Worker setup
@@ -129,7 +129,7 @@ In the previous hello world examples, we just loaded the entire video's worth of
 We'll set up this demuxer in it's own worker thread to isolate it from other processes. We'll then give this worker to both the audio renderer and video renderer, so, they can fetch encoded chunks from the demuxer.
 
 
-![](/src/assets/content/patterns/player/player-architecture-2.svg)
+![](/assets/patterns/player/player-architecture-2.svg)
 
 
 Each renderer will manage it's own data lifecycle independently, independently fetching chunks from the worker, decododing and buffering data as needed, so we can keep the architecture clean and isolate concerns.
@@ -157,7 +157,7 @@ We'll also a utility `WorkerController` class that lets us treat calls to worker
 
 Putting all of these together, we now have our basic, barebones architecture for our WebCodecs video player.
 
-![](/src/assets/content/patterns/player/player-architecture-3.svg)
+![](/assets/patterns/player/player-architecture-3.svg)
 
 
 Play / pause / seek events will go to our clock, which will in turn propogate events to the `AudioRenderer`.
@@ -1587,7 +1587,7 @@ export class VideoWorker extends EventEmitter {
 
 With all three of those components, we'll be able to run render calls `video.render() -> videoWorker.render() -> videoRenderer.render`
 
-![](/src/assets/content/patterns/player/video-renderer-arch.svg)
+![](/assets/patterns/player/video-renderer-arch.svg)
 
 #### Clock
 

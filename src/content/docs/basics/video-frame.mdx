@@ -7,7 +7,7 @@ import { Aside } from '@astrojs/starlight/components';
 
 Video is essentially just a series of images (called frames) with timestamps, indicating which frame to show at a given time during video playback.
 
-![](/src/assets/content/basics/video-frames/bbb-fames.png)
+![](/assets/basics/video-frames/bbb-fames.png)
 
 The javascript `VideoFrame` class,  likewise, is represented as a combination of pixel data (like RGB values) and some metadata (including the timestamp). <mark>Keep in mind that VideoFrame and other WebCodecs interfaces represent time in microseconds.</mark>
 ![](/src//assets//content//basics/video-frames/video-frame.svg)
@@ -18,7 +18,7 @@ A `VideoFrame` has all the information needed to render or display the image in 
 An `EncodedVideoChunk` can't directly be used to render or display an image, but you can directly read them from a video file, or write them to a video file.
 
 
-![](/src/assets/content/basics/what-is-webcodecs/simplified.svg)
+![](/assets/basics/what-is-webcodecs/simplified.svg)
 
 These two classes (`VideoFrame` and `EncodedVideoChunk`) are the backbone of WebCodecs, the whole point of WebCodecs is to facilitate the transformation between `EncodedVideoChunk` and `VideoFrame` objects, and and you would use `VideoFrame` objects when you need access to the raw video data (e.g. rendering a video to a canvas).
 
