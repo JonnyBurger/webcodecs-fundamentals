@@ -597,10 +597,8 @@ export async function transcodePipeline( file: File, ): Promise<Blob> {
 ### Transcoding Demo
 
 
-As we discussed in the pipeline section, we'll use H264 to just transcode the input video
+As we discussed in the pipeline section, we'll use H264 / AVC to transcode the video using the same height/width and standard bitrate settings, outputting at 30fps.
 
-
- here's a quick vibe-coded demo
 
 
 

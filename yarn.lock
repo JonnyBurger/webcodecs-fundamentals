@@ -3840,10 +3840,10 @@ web-namespaces@^2.0.0:
   resolved "https://registry.npmjs.org/web-namespaces/-/web-namespaces-2.0.1.tgz"
   integrity sha512-bKr1DkiNa2krS7qxNtdrtHAmzuYGFQLiQ13TsorsdT6ULTkPLKuu5+GsFpDlg6JFjUTwX2DyhMPG2be8uPrqsQ==
 
-webcodecs-examples@^0.1.7:
-  version "0.1.7"
-  resolved "https://registry.npmjs.org/webcodecs-examples/-/webcodecs-examples-0.1.7.tgz"
-  integrity sha512-GaTNPEK+Hegc0f59/p/odA7pnN8dIEl2YdVKKaSbp2zOLnk3FTfugCdNqDejcbdNObCKS1l2YV4W4GUUuKwkUw==
+webcodecs-examples@^0.1.8:
+  version "0.1.8"
+  resolved "https://registry.npmjs.org/webcodecs-examples/-/webcodecs-examples-0.1.8.tgz"
+  integrity sha512-zH6I+vkntTWjAgghgkI9924Xi+2smTDYRx0SXzMH0hGfYDb81FGpu5xZjiDVXWpkK0koDS9dZ6C+kHo8E9axmg==
   dependencies:
     localforage "^1.10.0"
     mp4-muxer "^5.2.1"
