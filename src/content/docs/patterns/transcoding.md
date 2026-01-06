@@ -67,6 +67,12 @@ Overall this gives us a complete transcoding pipeline of 5 stages, from the sour
 
 ![](/assets/patterns/transcoding/pipeline.svg)
 
+Beyond just piping data through, we also need to make sure we manage constraints, by making sure that:
+
+* We limit the number of active `VideoFrame` objects in memory
+* We limit the encoder's encode queue
+* We limit the decoder's decode queue
+* We don't read the entire file's worth of content at once
 
 
 ## Javascript Streams API
