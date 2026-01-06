@@ -499,23 +499,15 @@ export async function transcodePipeline( file: File, ): Promise<Blob> {
   const height = videoTrack.height;
 
 
-  let audioConfig = null;
-  try {
-    audioConfig = {
-      codec: audioTrack.codec_string,
-      sampleRate: audioTrack.sample_rate,
-      numberOfChannels: audioTrack.channels
-    }
-    console.log(`Found ${audioChunks.length} audio chunks`);
-  } catch (e) {
-    console.log('No audio track found, skipping...');
-  }
+  const videoDecoderConfig = await demuxer.getDecoderConfig('video');
+  const audioConfig = await demuxer.getDecoderConfig('audio');
 
 
-  const videoDecoderConfig = {
-    description: videoTrack.extradata,
-    codec: videoTrack.codec_string
-  };
+  const duration = videoTrack.duration;
+  const width = videoTrack.width;
+  const height = videoTrack.height;
+
+
 
   // Step 3: Set up muxer
   const storage = new InMemoryStorage();
@@ -599,7 +591,9 @@ export async function transcodePipeline( file: File, ): Promise<Blob> {
 
 As we discussed in the pipeline section, we'll use H264 / AVC to transcode the video using the same height/width and standard bitrate settings, outputting at 30fps.
 
-
-
+Here's the vibe coded demo:
 
 <iframe src="/demo/transcoding/index.html" frameBorder="0" width="720" style="height: 600px;" ></iframe>
+
+
+You can find the source code for the transcode function [here](https://github.com/sb2702/webcodecs-examples/blob/main/src/transcoding/transcode-pipeline.ts). You can find the source code for the demo here: [html](/demo/transcoding/index.html), [js](/demo/transcoding/demo.js)
