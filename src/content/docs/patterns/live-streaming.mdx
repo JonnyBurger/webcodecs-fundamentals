@@ -38,7 +38,8 @@ Other browser APIs like `WebRTC`and `MSE` have data transfer built-in and applic
 
 The strength and weakness of WebCodecs is that it is very low-level, so you absolutely can control how individual video packets are sent over the network, but then you have to figure out how to send invidual video packets over the network.
 
-#### It's just data (+metadata)
+
+#### The requirements
 
 Let's start with the example of sending a video stream from the browser to a server. Our `VideoEncoder` gives us `EncodedVideoChunk` objects, and an `EncodedVideoChunk` is just binary data with some meta data attached.
 
@@ -47,6 +48,12 @@ Let's start with the example of sending a video stream from the browser to a ser
 For a streaming, we'd need to send a bunch of these chunks, in real time, in order, over a network, in a bidirectional manner.
 
 ![](/assets/patterns/livestreaming/encoded-chunk-3.svg)
+
+
+With generic data transfer, there are a number of ways we could accomplish this:
+
+
+#### The do-it-yourself networking options
 
 ###### HTTP
 
@@ -89,7 +96,7 @@ app.post('/upload', (req, res) => {
   </TabItem>
 </Tabs>
 
-But then you'd be sending 30 http requests per second, which is slow and error prone. There's also no way to send data back to the client. There are optimizations you could make, but there are also inherently more suitable options.
+But then you'd be sending 30 http requests per second, which is slow and error prone. There's also no way to send data back to the client. There are optimizations you could make, and you could make this work if you just need to upload media in chunks without worrying about real-time delivery, but there are also inherently more suitable options.
 
 
 ###### Web Sockets
@@ -170,42 +177,26 @@ wss.on('connection', (ws) => {
   </TabItem>
 </Tabs>
 
-
+If you are only sending data one way, this could work, but if you need to enable data from one browser to another, you'd need your server to concurrently handle multiple websocket sessions and set up your own routing system.
 
 ###### Web Transport
 
-WebTransport is like a successor to WebSockets, but enables better peformance and uses the [Streams API](../../concepts/streams)
+WebTransport is like a successor to WebSockets, with support being rolled out [[2](https://caniuse.com/webtransport)],  but it enables better peformance and uses the [Streams API](../../concepts/streams). WebTransport lets you write this as a pipeline, where the video frame source (e.g. a user webcam) gets piped through the encooder (a `TransformStream` wrapper) and piped to a writer, which then writes data in a stream-like fashion over the network.
 
  ```typescript
 const transport = await WebTransport.connect('https://localhost:3000/upload');
 const stream = await transport.createUnidirectionalStream();
 const writer = stream.getWriter();
 
-const encoder = new VideoEncoder({
-    output: (chunk) => {
-        const binaryData = <Uint8Array> customBinaryEncodingScheme(chunk);
-        await writer.write(binaryData);
-    },
-    error: (e)=>{} //error handling
- });
-
- ```
-
-With the StreamsAPI you could re-write this as a pipeline, where the video frame source (e.g. a user webcam) gets piped through the encooder (a `TransformStream` wrapper) and piped to the writer.
-
- ```typescript
  //PseudoCode
-const transport = await WebTransport.connect('https://localhost:3000/upload');
-const stream = await transport.createUnidirectionalStream();
-const writer = stream.getWriter();
-
 frameSource.pipeThrough(videoEncoder).pipeTo(writer);
  ```
- I've intentionally kept this code examples high-level / pseudocde, because the rest of this tutorial will use WebTransport, but indirectly via Media Over Quic
 
+This is a practical option for unidirectional streams, though like WebSockets, if you need to enable data from one browser to another, you’d need to set up your own routing system.
 
-## Media Over Quic
+#### Media Over Quic
 
+Media Over Quic is a protocol
 
 
 
