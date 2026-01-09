@@ -310,6 +310,7 @@ const audioTrack = <MediaStreamTrack> stream.getAudioTracks()[0];
 
 And this lets get the specific track for audio and video.
 
+![](/assets/patterns/livestreaming/mst.svg)
 
 #### MediaStreamTrackProcessor
 
@@ -357,6 +358,9 @@ while (true) {
 ```
 
 The audio processor returns `AudioData` objects containing raw audio samples along with metadata like sample rate and channel count.
+
+
+![](/assets/patterns/livestreaming/mst-2.svg)
 
 #### Encoding Pipeline
 
@@ -432,6 +436,10 @@ const encodedVideoStream = videoProcessor.readable
 The pipeline will now output `EncodedVideoChunk` objects representing the user's webcam (you can do the same for audio). Using the [Streams API](../../concepts/streams) helps us manage memory and automatically handles setup, flushing and clean up.
 
 
+
+![](/assets/patterns/livestreaming/mst-3.svg)
+
+
 #### Recording WebCam demo
 
 Now we have a stream of `EncodedVideoChunk` and `EncodedAudioChunk` data from our webcam. In the next section, we'll pipe this to the internet, but just to have an intermediate working demo, we'll pipe this data to a file.
@@ -488,7 +496,12 @@ function createAudioMuxerWriter(muxer: Muxer<StreamTarget>): WritableStream<Enco
 }
 ```
 
-Then we can create a pipeline. The AbortController allows us to stop the pipelines at any time via `abortController.abort()`, and so you could create a  'stop recording' button and have that call `abortController.abort()`  to stop recording.
+Then we can create a pipeline. 
+
+![](/assets/patterns/livestreaming/mst-4.svg)
+
+
+The AbortController allows us to stop the pipelines at any time via `abortController.abort()`, and so you could create a  'stop recording' button and have that call `abortController.abort()`  to stop recording.
 
 ```typescript
 const abortController = new AbortController();
