@@ -368,8 +368,9 @@ This composited feed would then be encoded into an RTMP live stream that would t
 
 While working with RTMP was a core requirement (that's what live-streaming destinations required as inputs), Streamyard had multiple options for sending video from the browser to the server, and in practice ended up using two parallel systems (WebRTC for the livestream, an in-house solution for local recordings).
 
-Given Streamyard's core focus on stability, using the established WebRTC protocol over a newer, more experimental setup like Media over Quic probably makes sense, however for the local recordings use case (recording higher-quality versions of the stream locally, uploading that in chunks), WebCodecs would have a clear-cut benefit.
+If you were to build a product like Streamyard today, given the product's core focus on stability, using the established WebRTC protocol over a newer, more experimental setup with WebCodecs probably makes sense. That said, I do know that the Streamyard team specifically preferred controlling certain aspects of their stack to obtain more reliability and performance compared to off-the-shelf solutions, and so having more fine-grained control over encoding and networking compared to WebRTC might would have also made it a sensible choice.
 
+For the local recordings use case (recording higher-quality versions of the stream locally, uploading that in chunks), that seems like a pretty good use case for WebCodecs.
 
 
 #### Depends on your use case
