@@ -288,7 +288,7 @@ You can find out more about Media over Quic [here](../../projects/moq), it's wor
 We're going to start with streaming video and audio from the browser. Presumably the most common use case is to stream webcam audio and video and so that's what we're going to start with.
 
 
-**getUserMedia**
+#### getUserMedia
 
 Our first step is to call [getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia) which is an async call which will request the user's webcam, specifically the audio you request
 
@@ -311,7 +311,7 @@ const audioTrack = <MediaStreamTrack> stream.getAudioTracks()[0];
 And this lets get the specific track for audio and video.
 
 
-**MediaStreamTrackProcessor**
+#### MediaStreamTrackProcessor
 
 To actually get raw audio and video data from the stream, we'll need a [MediaStreamTrackProcessor](https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrackProcessor). It's not yet supported on Safari or Firefox, but we can use a polyfill:
 
@@ -339,8 +339,6 @@ while (true) {
 
 Each `VideoFrame` contains the raw video data along with metadata like timestamp. We need to close frames after processing to free memory.
 
-**Audio works the same way:**
-
 ```typescript
 const audioProcessor = new MediaStreamTrackProcessor({ track: audioTrack });
 const reader = audioProcessor.readable.getReader();
@@ -360,18 +358,170 @@ while (true) {
 
 The audio processor returns `AudioData` objects containing raw audio samples along with metadata like sample rate and channel count.
 
+#### Encoding Pipeline
 
-1) MediaDevices getUserMedia
+Rather than manually reading frames and encoding them one-by-one, we can use the [Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API) to create a pipeline. We can wrap `VideoEncoder` and `AudioEncoder` in `TransformStream` objects.
 
-2) VideoEncoder (transform stream)
+Here's what a `VideoEncoderStream` looks like:
 
-3) Instorage Memory
+```typescript
+class VideoEncoderStream extends TransformStream<VideoFrame, { chunk: EncodedVideoChunk; meta: EncodedVideoChunkMetadata }> {
+  constructor(config: VideoEncoderConfig) {
+    let encoder: VideoEncoder;
+    let frameIndex = 0;
+
+    super({
+      start(controller) {
+        encoder = new VideoEncoder({
+          output: (chunk, meta) => {
+            controller.enqueue({ chunk, meta });
+          },
+          error: (e) => controller.error(e),
+        });
+        encoder.configure(config);
+      },
+
+      async transform(frame, controller) {
+        // Apply backpressure
+        while (encoder.encodeQueueSize >= 20) {
+          await new Promise((r) => setTimeout(r, 10));
+        }
+        encoder.encode(frame, { keyFrame: frameIndex % 60 === 0 });
+        frame.close();
+        frameIndex++;
+      },
+
+      async flush() {
+        await encoder.flush();
+        if (encoder.state !== 'closed') encoder.close();
+      },
+    }, { highWaterMark: 10 });
+  }
+}
+```
+
+The `TransformStream` takes `VideoFrame` as input and outputs `EncodedVideoChunk`. The `start` method sets up the encoder, `transform` encodes each frame, and `flush` cleans up when the stream ends.
+
+
+```typescript
+import { getBitrate, getCodecString } from 'webcodecs-utils';
+
+const videoSettings = videoTrack.getSettings();
+const width = videoSettings.width;
+const height = videoSettings.height;
+const fps = videoSettings.frameRate || 30;
+
+// Calculate optimal bitrate and codec string
+const bitrate = getBitrate(width, height, fps, 'good');
+const config: VideoEncoderConfig = {
+  codec: getCodecString('avc', width, height, bitrate),
+  width,
+  height,
+  bitrate,
+  framerate: fps,
+};
+
+const videoEncoderStream = new VideoEncoderStream(config);
+
+// Pipe frames through encoder
+const encodedVideoStream = videoProcessor.readable
+  .pipeThrough(videoEncoderStream);
+
+```
+
+The pipeline will now output `EncodedVideoChunk` objects representing the user's webcam (you can do the same for audio). Using the [Streams API](../../concepts/streams) helps us manage memory and automatically handles setup, flushing and clean up.
+
+
+#### Recording WebCam demo
+
+Now we have a stream of `EncodedVideoChunk` and `EncodedAudioChunk` data from our webcam. In the next section, we'll pipe this to the internet, but just to have an intermediate working demo, we'll pipe this data to a file.
+
+
+First, we'll create a muxer
+
+```typescript
+import { Muxer, StreamTarget } from 'mp4-muxer';
+
+const storage = new InMemoryStorage();
+const target = new StreamTarget({
+  onData: (data: Uint8Array, position: number) => {
+    storage.write(data, position);
+  },
+  chunked: true,
+  chunkSize: 1024 * 1024 * 10
+});
+
+const muxer = new Muxer({
+  target,
+  video: {
+    codec: 'avc',
+    width: videoSettings.width!,
+    height: videoSettings.height!,
+  },
+  audio: {
+    codec: 'aac',
+    numberOfChannels: audioSettings.channelCount!,
+    sampleRate: audioSettings.sampleRate!,
+  },
+  firstTimestampBehavior: 'offset',
+  fastStart: 'in-memory',
+});
+```
+
+
+Then we'll create a muxer writer for each track
+
+``` typescript
+createVideoMuxerWriter(muxer: Muxer<StreamTarget>): WritableStream<{ chunk: EncodedVideoChunk; meta: EncodedVideoChunkMetadata }> {
+  return new WritableStream({
+    async write(value) {
+      muxer.addVideoChunk(value.chunk, value.meta);
+    }
+  });
+}
+function createAudioMuxerWriter(muxer: Muxer<StreamTarget>): WritableStream<EncodedAudioChunk> {
+  return new WritableStream({
+    async write(chunk) {
+      muxer.addAudioChunk(chunk);
+    }
+  });
+}
+```
+
+Then we can create a pipeline. The AbortController allows us to stop the pipelines at any time via `abortController.abort()`, and so you could create a  'stop recording' button and have that call `abortController.abort()`  to stop recording.
+
+```typescript
+const abortController = new AbortController();
+
+const videoPipeline  = videoProcessor.readable
+.pipeThrough(videoEncoderStream)
+.pipeTo(createVideoMuxerWriter(muxer), { signal: abortController.signal });
+
+const audioPipeline = audioProcessor.readable
+.pipeThrough(audioEncoderStream)
+.pipeTo(createAudioMuxerWriter(muxer), { signal: abortController.signal })
+
+```
+
+We can await the pipelines, and the promise will resolve when the pipelines are done. We can then get our recorded video back;
+
+```typescript
+// Resolves when we call abortController.abort()
+await Promise.all([videoPipeline, audioPipeline]); 
+muxer.finalize();
+const blob =  storage.toBlob('video/mp4');
+
+```
+
+
+Putting it all together, we can now record video in the browser without `MediaRecorder`, but rather by extracting `VideoFrame` and `AudioData` objects from the `MediaStream`, piping those through encoders, and streaming the results to a file.
 
 <iframe src="/demo/webcam-recording/index.html" frameBorder="0" style="width: 720px; height: 320px; solid #e2e8f0; border-radius: 8px;"></iframe>
 
 
+See the full code [here](https://github.com/sb2702/webcodecs-examples/blob/main/src/webcam-recording/recorder.ts)
 
-stuff
+
 
 ## Examples
 
