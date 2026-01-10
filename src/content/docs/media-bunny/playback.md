@@ -1,6 +1,6 @@
 ---
-title: Playback Architecture
-description: Ring buffers, backpressure, and AV sync
+title: How to build a video player with Media Bunny
+description: Coming soon
 ---
 
-TBD
+Coming soon
