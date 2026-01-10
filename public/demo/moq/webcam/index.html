@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MoQ Demo</title>
+  <title>WebCodecs MoQ Webcam Demo</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -77,28 +77,29 @@
     }
 
     .demo-grid {
-      display: block;
-
+      display: flex;
+      flex-direction: row;
+      gap: 15px;
     }
 
     .demo-grid iframe {
-     
-      float:left;
+      flex: 1;
+      width: 50%;
       min-width: 0;
-      height: 450px;
-      width: 49%;
+      height: 500px;
       border: 1px solid #cbd5e0;
       border-radius: 8px;
       background: white;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 600px) {
       .demo-grid {
         flex-direction: column;
       }
 
-      iframe {
-        height: 400px;
+      .demo-grid iframe {
+        width: 100%;
+        height: 500px;
       }
     }
   </style>
@@ -106,9 +107,10 @@
 <body>
   <div class="container">
     <div id="startScreen" style="text-align: center; padding: 60px 20px;">
-      <h2 style="margin-bottom: 20px; color: #2d3748;">Media over QUIC Demo</h2>
+      <h2 style="margin-bottom: 20px; color: #2d3748;">WebCodecs Webcam Streaming Demo</h2>
       <p style="color: #4a5568; margin-bottom: 30px; font-size: 15px;">
-        Click start to connect to Cloudflare's public MoQ relay and test real-time messaging between publisher and subscriber.
+        Stream your webcam in real-time using WebCodecs and Media over QUIC.<br>
+        Publisher encodes video/audio, subscriber decodes and plays it back.
       </p>
       <button id="startBtn" style="padding: 16px 40px; font-size: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
         ▶ Start Demo
@@ -121,14 +123,10 @@
         <div class="input-group">
           <div class="input-wrapper">
             <label>Broadcast Name:</label>
-            <input type="text" id="broadcastName" value="my-broadcast" />
-          </div>
-          <div class="input-wrapper">
-            <label>Track Name:</label>
-            <input type="text" id="trackName" value="chat" />
+            <input type="text" id="broadcastName" value="my-broadcast" readonly />
           </div>
           <div style="align-self: flex-end;">
-            <button id="updateBtn">Reload with New Config</button>
+            <button id="updateBtn">Reload</button>
           </div>
         </div>
       </div>
@@ -141,7 +139,10 @@
   </div>
 
   <script>
-    const relay = 'https://interop-relay.cloudflare.mediaoverquic.com:443';
+  //  const relay = 'https://interop-relay.cloudflare.mediaoverquic.com:443';
+
+    
+   const relay = "http://localhost:4443"
 
     // Generate random broadcast name
     function generateBroadcastName() {
@@ -162,13 +163,12 @@
       const initialBroadcast = generateBroadcastName();
       document.getElementById('broadcastName').value = initialBroadcast;
 
-      // Update iframes with initial broadcast name
-      const initialTrack = document.getElementById('trackName').value;
-      const initialParams = `relay=${encodeURIComponent(relay)}&broadcast=${encodeURIComponent(initialBroadcast)}&track=${encodeURIComponent(initialTrack)}`;
-      document.getElementById('publisherFrame').src = `publisher.html?${initialParams}`;
+      // Update iframes
+      const baseParams = `relay=${encodeURIComponent(relay)}&broadcast=${encodeURIComponent(initialBroadcast)}`;
+      document.getElementById('publisherFrame').src = `publisher.html?${baseParams}`;
 
       setTimeout(function(){
-        document.getElementById('subscriberFrame').src = `subscriber.html?${initialParams}`;
+        document.getElementById('subscriberFrame').src = `subscriber.html?${baseParams}`;
       }, 100);
     }
 
@@ -178,9 +178,7 @@
     // Update button handler
     document.getElementById('updateBtn').addEventListener('click', () => {
       const broadcast = document.getElementById('broadcastName').value;
-      const track = document.getElementById('trackName').value;
-
-      const baseParams = `relay=${encodeURIComponent(relay)}&broadcast=${encodeURIComponent(broadcast)}&track=${encodeURIComponent(track)}`;
+      const baseParams = `relay=${encodeURIComponent(relay)}&broadcast=${encodeURIComponent(broadcast)}`;
 
       document.getElementById('publisherFrame').src = `publisher.html?${baseParams}`;
 

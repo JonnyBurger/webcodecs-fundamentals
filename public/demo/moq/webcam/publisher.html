@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoQ Publisher</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 15px;
+      background-color: #f8f9fa;
+    }
+
+    .container {
+      max-width: 100%;
+    }
+
+    h3 {
+      margin: 0 0 10px 0;
+      color: #2d3748;
+      font-size: 16px;
+    }
+
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      background: #f7fafc;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .status.connected {
+      background: #c6f6d5;
+      border-color: #9ae6b4;
+      color: #22543d;
+    }
+
+    .status.error {
+      background: #fed7d7;
+      border-color: #fc8181;
+      color: #742a2a;
+    }
+
+    .log {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 8px;
+      border-radius: 4px;
+      max-height: 120px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 10px;
+      margin-top: 10px;
+    }
+
+    .log-entry {
+      margin: 3px 0;
+      padding: 3px;
+      border-left: 3px solid transparent;
+      padding-left: 8px;
+    }
+
+    .log-entry.info { border-left-color: #4299e1; }
+    .log-entry.success { border-left-color: #48bb78; }
+    .log-entry.error { border-left-color: #f56565; }
+
+    .log-entry .timestamp {
+      color: #a0aec0;
+      margin-right: 8px;
+      font-size: 10px;
+    }
+
+    button {
+      padding: 8px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      background: #3182ce;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+      margin-right: 5px;
+    }
+
+    button:hover:not(:disabled) {
+      background: #2b6cb0;
+    }
+
+    button:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+    }
+
+    .controls {
+      margin: 10px 0;
+    }
+
+    video {
+      width: 100%;
+      max-width: 300px;
+      border-radius: 4px;
+      margin: 10px 0;
+      background: #000;
+    }
+
+    button {
+      font-size: 11px;
+      padding: 6px 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h3>📤 Publisher</h3>
+    <div id="status" class="status">Initializing...</div>
+
+    <div class="controls">
+      <button id="startWebcamBtn">Start Webcam</button>
+      <button id="startPublishBtn" disabled>Start Publishing</button>
+    </div>
+
+    <video id="preview" autoplay muted playsinline></video>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script type="module">
+    import * as Moq from 'https://esm.sh/@moq/lite';
+    import { MoqPublisher, getSampleRate, getBitrate, getCodecString  } from 'https://cdn.jsdelivr.net/npm/webcodecs-examples@0.1.14/dist/index.js';
+   // import { } from 'https://unpkg.com/webcodecs-utils@latest/dist/index.js';
+
+    // Get URL parameters
+    const params = new URLSearchParams(window.location.search);
+    const relayUrl = params.get('relay') || 'https://relay.quic.video:4443';
+    const broadcastName = params.get('broadcast') || 'my-broadcast';
+
+    // UI Elements
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+    const startWebcamBtn = document.getElementById('startWebcamBtn');
+    const startPublishBtn = document.getElementById('startPublishBtn');
+    const preview = document.getElementById('preview');
+
+    // State
+    let connection = null;
+    let broadcast = null;
+    let videoTrack = null;
+    let audioTrack = null;
+    let stream = null;
+    let publisher = null;
+
+    // Logging
+    function log(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      const timestamp = new Date().toLocaleTimeString();
+      entry.innerHTML = `<span class="timestamp">[${timestamp}]</span>${message}`;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+
+    function updateStatus(message, type = 'info') {
+      statusEl.textContent = message;
+      statusEl.className = 'status';
+      if (type === 'success') statusEl.className = 'status connected';
+      if (type === 'error') statusEl.className = 'status error';
+    }
+
+    async function startWebcam() {
+      try {
+        updateStatus('Requesting webcam access...', 'info');
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 1280, height: 720 },
+          audio: true,
+        });
+
+        videoTrack = stream.getVideoTracks()[0];
+        audioTrack = stream.getAudioTracks()[0];
+
+        preview.srcObject = stream;
+
+        updateStatus('Webcam ready', 'success');
+        log('Webcam started', 'success');
+
+        startWebcamBtn.disabled = true;
+        startPublishBtn.disabled = false;
+      } catch (error) {
+        updateStatus('Failed to get webcam', 'error');
+        log('Webcam error: ' + error.message, 'error');
+      }
+    }
+
+    async function startPublishing() {
+      try {
+        updateStatus('Connecting to relay...', 'info');
+
+        connection = await Moq.Connection.connect(new URL(relayUrl));
+        broadcast = new Moq.Broadcast();
+        connection.publish(broadcastName, broadcast);
+
+        updateStatus('Publishing...', 'success');
+        log('Connected to relay', 'success');
+
+        startPublishBtn.disabled = true;
+
+        // Create encoder configs
+        const videoSettings = videoTrack.getSettings();
+        const audioSettings = audioTrack.getSettings();
+        const sampleRate = await getSampleRate(audioTrack);
+
+        const codec = 'avc';
+        const bitrate = getBitrate(videoSettings.width, videoSettings.height, 30, 'good');
+        const codecString = getCodecString(codec, videoSettings.width, videoSettings.height, bitrate);
+
+        const videoConfig = {
+          codec: codecString,
+          width: videoSettings.width,
+          height: videoSettings.height,
+          bitrate: Math.round(bitrate),
+          framerate: 30,
+        };
+
+        const audioConfig = {
+          codec: 'opus',
+          sampleRate: sampleRate,
+          numberOfChannels: Math.min(audioSettings.channelCount || 2, 2),
+          bitrate: 128000,
+        };
+
+        // Get description using the same config
+        const description = await MoqPublisher.getDescription(videoTrack, videoConfig);
+
+        const catalogData = {
+          video: {
+            renditions: {
+              video0: {
+                codec: codecString,
+                codedWidth: videoSettings.width,
+                codedHeight: videoSettings.height,
+                description
+              }
+            },
+            priority: 1
+          },
+          audio: {
+            renditions: {
+              audio0: audioConfig
+            },
+            priority: 2
+          }
+        };
+
+        // Handle catalog requests
+        (async () => {
+          while (true) {
+            const trackRequest = await broadcast.requested();
+            const requestedTrack = trackRequest.track;
+
+            log(`Track requested: ${requestedTrack.name}`, 'info');
+
+            if (requestedTrack.name === 'catalog.json') {
+              const catalogJson = JSON.stringify(catalogData);
+              const group = requestedTrack.appendGroup();
+              group.writeString(catalogJson);
+              group.close();
+              log('Sent catalog', 'success');
+            }
+          }
+        })();
+
+        // Start MoQ publisher with configs
+        publisher = new MoqPublisher(videoTrack, audioTrack, broadcast, videoConfig, audioConfig);
+        await publisher.start();
+        log('Publisher started', 'success');
+
+      } catch (error) {
+        updateStatus('Connection failed', 'error');
+        log('Error: ' + error.message, 'error');
+      }
+    }
+
+    // Event listeners
+    startWebcamBtn.addEventListener('click', startWebcam);
+    startPublishBtn.addEventListener('click', startPublishing);
+
+    updateStatus('Ready to start', 'info');
+  </script>
+</body>
+</html>
