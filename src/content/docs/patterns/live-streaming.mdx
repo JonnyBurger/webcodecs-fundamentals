@@ -543,7 +543,9 @@ Now that we can covered:
 1. How to send data over a Media over Quic (MoQ) relay
 2. How to grba a stram of encoded audio & video from a webcam
 
-The next obvious step is to send encoded video over the network. The way to send arbitrary binary data over a track using the `@moq/lite` library is as follows:
+The next obvious step is to send encoded video over the network. We're going to start with sending data between browsers as it's the simplest case. 
+
+The way to send arbitrary binary data over a track using the `@moq/lite` library is as follows:
 
 ```typescript
 // Pull-mode, tracks are created when subscribers subscribe
@@ -649,7 +651,7 @@ for (;;) {
     }
 }
 ```
-Any subscriber can then listen for `catalog.json` in the broadcast, and once it receives the catelog, it can start listening for the video and audio tracks, as well as set up the `AudioDecoder` and `VideoDecoder`
+Any subscriber can then subscribe to the  `catalog.json` track in the broadcast, and once it receives the catalog, it can start listening for the video and audio tracks, as well as set up the `AudioDecoder` and `VideoDecoder`
 
 ```typescript
 const catalogTrack = broadcast.subscribe('catalog.json');
@@ -667,14 +669,10 @@ for (;;) {
 
 ###### Streaming chunks
 
-### Browser to Browser
-
-#### Hang format
-##listen to track.json
+Next, we'd actually need to set up 
 
 
--- Production gotchas
-
+#### Browser to Browser Streaming
 
 
 
