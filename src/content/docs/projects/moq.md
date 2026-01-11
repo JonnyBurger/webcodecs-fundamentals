@@ -140,18 +140,28 @@ I'll give the boring answer that it depends on your use case. If you want the TL
 
 Media over Quic is still very nascent without major well-known apps implementing it in production at scale. There are experiments by large tech companies and there are adventurous startups using it live [[5]](https://github.com/facebookexperimental/moq-encoder-player)  [[6](https://hang.live/)], but it still requires more development and tooling to become mainstream.
 
-That said, performance benefits are real and so early adopters would see competitive advantages compared to established products. The sweet spot for early adopters would be application categories which are not well served either by WebRTC or by HLS/DASH.
+That said, performance benefits are real and so early adopters would likely see competitive advantages compared to established products. 
+
+###### Too big for WebRTC, to small for HLS/DASH
+
+The sweet spot for early adopters would likely be application categories which are not well served either by WebRTC or by HLS/DASH.
 
 Some examples might include:
 * Webinar software, where webinars need real-time interactivity but which also need to scale to thousands or tens of thousands of participants
 * Broadcasting virtual events where speakers typically stream few=>many, but which often involve interactive Q&A
 * Browser based live-streaming tools, which stream video from browsers to servers and other participants, while simultaneously streaming social media platforms like Facebook like or YouTube live
 
+###### More control and relability than WebRTC
 
-Media over Quic would also be helpful in scenarios where low-level control over video delivery is required, such as in real-time AI video pipelines, where you need to run AI models on a per-frame basis, either for understanding what is going on in a live video feed or transform the video feed.
+Media over Quic would also be helpful in scenarios where low-level control over video delivery is required, such as in real-time AI video pipelines, where you need to run AI models on a per-frame basis, either for understanding what is going on in a live video feed or transform the video feed, or remote control scenarios. 
 
+WebRTC is often used in these scenarios (yes, really) but here low-level control of data-packets and the ability to customize the data-feed with custom encodings, along with the more robust connectivity of HTTP3/Quic make Media over Quic an attractive option. 
 
-On ther other hand, if you are building standard cookie-cutter video conferencing, WebRTC is the clear better technology. For traditional broadcasting livestreaming, HLS/DASH streaming are still the obvious choice.
+Here, the scale benefit of Media over Quic is irrelevant, and using a self-hosted relay would likely be preferrable to a public CDN, it's more about the other aspects of Media over Quic that make it attractive while not needing to invent and maintin a custom networking protocol.
+
+###### For everything else
+
+For everything else there's ~~Mastercar~~ WebRTC and HLS/DASH. If you are building standard cookie-cutter video conferencing, WebRTC is the clear better technology. For traditional broadcasting livestreaming, HLS/DASH streaming are still the obvious choice.
 
 
 
