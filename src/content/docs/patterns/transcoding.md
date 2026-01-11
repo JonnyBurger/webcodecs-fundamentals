@@ -78,128 +78,27 @@ Beyond just piping data through, we also need to make sure we manage constraints
 
 ## Javascript Streams API
 
-The browser exposes an API called the [Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/) that is extremely suited to this use case.  
+The browser's [Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/) is perfectly designed for building transcoding pipelines. It provides three key stream types:
 
+- **ReadableStream** - Read data from a source in chunks (e.g., demuxer reading from file)
+- **WritableStream** - Write data to a destination in chunks (e.g., muxer writing to file)
+- **TransformStream** - Transform chunks from one type to another (e.g., decoder, encoder)
 
-**ReadStreams**:
-You can define "Read Streams", which will read data from a souce in chunks to some processor
-
-![](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/Concepts/readable_streams.png)
-
-For example, [web-demuxer](https://github.com/bilibili/web-demuxer/) returns a read stream for encoded chunks.
-
+You can chain these streams together to form a complete pipeline:
 
 ```typescript
-import { WebDemuxer } from 'https://cdn.jsdelivr.net/npm/web-demuxer/+esm';
-
-const demuxer = new WebDemuxer({
-    wasmFilePath: "https://cdn.jsdelivr.net/npm/web-demuxer@latest/dist/wasm-files/web-demuxer.wasm",
-});
-
-await demuxer.load(<File> file);
-
-const reader = <ReadableStream> demuxer.read('video').getReader();
-
-reader.read().then(function processPacket({ done, value }) {
-    if(value) //value is an EncodedVideoChunk
-    if(! done) return reader.read().then(processPacket)
-});
-
-```
-
-**WriteStreams**:
-You can define "Write Streams", which will write data to a destination in chunks
-![](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/Concepts/writable_streams.png)
-
-For muxing files, [MediaBunny](https://mediabunny.dev/) exposes a direct `StreamTarget` where you can stream muxed data straight to the correct position in the output file.
-
-```typescript
-import { StreamTarget } from 'mediabunny'
-// Writes to file on hard disk
-const writable = await fileHandle.createWritable(); 
-const target = new StreamTarget({
-    onwrite: (data: Uint8Array, position: number) => {
-        writeable.write({ type: "write", data, position }); 
-    },
-    {
-        chunked: true,
-        chunkSize: 1024*1024*10
-    }
-});
-
-
-```
-
-
-**Transform Streams**:
-You can also define  "Transform Streams", where you can transform chunks of data from one type to another.
-![](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/Concepts/pipechain.png)
-
-
-The `TransformStream` API lets you create a custom Transform Stream, which exposes a `start` method for setup, a `transform` method for running the transform, and a `flush` method which is run when the stream has no more inputs. You can also specify a `highWaterMark` property which signals to the Stream API the desired buffer size.
-
-```typescript
-class VideoEncoderStream extends TransformStream< VideoFrame, { chunk: EncodedVideoChunk; meta: EncodedVideoChunkMetadata }> {
-  let encoder: VideoEncoder;
-  constructor(config: VideoEncoderConfig) {
-    super(
-      {
-        start(controller) {
-          encoder = new VideoEncoder({
-            output: (chunk, meta) => { controller.enqueue({ chunk, meta }); },
-            error: (e) => { controller.error(e); },
-          });
-          encoder.configure(config);
-        },
-
-        async transform({frame, index}, controller) {
-          encoder.encode(frame, { keyFrame: index%60==0 }); 
-          frame.close();
-        },
-        async flush(controller) {
-          await encoder.flush();
-        },
-      },
-      { highWaterMark: 10 }
-    );
-  }
-}
-
-
-```
-
-Further more, you can chain these streams together to form a complete pipeline. 
-
-```typescript
-
- const transcodePipeline = chunkReadStream
+const transcodePipeline = chunkReadStream
     .pipeThrough(new VideoDecoderStream(videoDecoderConfig))
     .pipeThrough(new VideoRenderStream())
     .pipeThrough(new VideoEncoderStream(videoEncoderConfig))
-    .pipeTo(new MuxerWriter(muxingConfig));
+    .pipeTo(createMuxerWriter(muxer));
 
-await transcodePipeline
+await transcodePipeline;
 ```
- 
 
-The Streams API allows for each stage to process multiple chunks at a time, and it allows us to limit the number of chunks in queue or in buffer at any given time.
+The Streams API automatically handles **backpressure**—when downstream stages (like encoding) can't keep up, upstream stages (like file reading) automatically slow down. This prevents memory overflow while maximizing throughput.
 
-
-If this seems perfectly designed for our transcoding pipeline, that is 100% why we are going to use the Streams API for transcoding.
-
-
-#### Backpressure
-
-One of the main concepts in the Streams API is *backpressure*, whereby when you chain multiple stages together, downstream processes (like the `VideoEncoder`) may not be able to keep up, so you'd want to signal to the upstream stages (like file reading, decoding) to slow down, so as to now overwhelm the encoder.
-
-This is accomplished by two things: the `highWaterMark` property specified in each stage of the process, signalling the maximimum size of items to queue in a specific stage, and the `controller`, which has the `desiredSize` property, which is essentially `high water mark - total size of chunks in queue = desired size`. This means that if `controller.desiredSize` is positive, upstream stages should send more chunks down the pipe, or if it's negative, upstream stages should slow down.
-
-This perfectly lets us pipe data from the source file, through the decode, render, encode and muxing steps out to a destination file, all while enforcing the following constraints:
-
-* We limit the number of active VideoFrame objects in memory
-* We limit the encoder’s encode queue
-* We limit the decoder’s decode queue
-* We don’t read the entire file’s worth of content at once
+For a detailed explanation of the Streams API, including backpressure, `highWaterMark`, and complete stream implementations, see the [Streams API primer](../../concepts/streams).
 
 ## Transcoding Stream implementation
 
