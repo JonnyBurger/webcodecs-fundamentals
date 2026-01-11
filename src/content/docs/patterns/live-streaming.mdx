@@ -1439,11 +1439,242 @@ A lot of this was manually implemented, but you can also use the [hang library](
 
 ## Streaming to and from a server
 
+The idea behind MoQ is that a server can act as a publisher or a subscriber just like any browser client. When streaming data from a browser to a server, the browser would act as a publisher, and the server would act as a subscriber. When streaming from a server to a browser, the server would be the publisher and the browsers would be subscribers.
 
-- MoQ doesn't work in Node, fallback to websockets
+#### Server to Browser
 
-This may make sense in cases where you want recordings 
+A primary use case for streaming from a browser to a server would be for "recording" features, such as preserving a meeting recording, or recording high-definition versions of user's web-cameras, which are common features of meeting, webinar and live-streaming softwares.
 
+Here we'll have a server connect to a MoQ relay, and subscribe to the same stream that subscribers listen to.
+
+![](/assets/patterns/livestreaming/live-streaming-recording.svg)
+
+
+Many existing platforms use a similar approach with WebRTC where the sever joins a session as a participant and just 'records', usually involving decoding the WebRTC stream, and re-encoding it to a file.
+
+One advantage of Webcodecs is that we can avoid a decode/encode process and directly mux video to hard disk which is much more efficient. Because WebCodecs provides raw encoded video/audio data, it can work with server-side media processing libraries like [PyAV](https://github.com/PyAV-Org/PyAV) and [NodeAV](https://github.com/seydx/node-av), which are server-runtime bindings for ffmpeg, allowing you to mux encoded video data on the server (to record a user's stream). 
+
+Because [MediaBunny](../../projects/mediabunny) works on the server, we'll use that as our example, but you can use whatever media processing library is available for your target language:
+
+
+On the server, for each file you record you'd create a new output with the file you want to write to 
+
+```typescript
+import { Output, EncodedPacket, EncodedVideoPacketSource,EncodedAudioPacketSource, FilePathTarget,  Mp4OutputFormat, WebMOutputFormat } from 'mediabunny';
+
+const output = new Output({
+  format: new Mp4OutputFormat(),
+  target: new FilePathTarget(outputPath), //Wherever you save this
+});
+
+// Create video source
+const videoSource = new EncodedVideoPacketSource('avc');
+output.addVideoTrack(videoSource);
+
+// Create audio source
+const audioSource = new EncodedAudioPacketSource('aac' );
+output.addAudioTrack(audioSource);
+
+```
+
+
+As you get data from the client, you'd mux frames as so:
+
+```typescript
+function handleFrame(frame, meta) {
+    if (frame.type === 'video') {
+      const packetType = frame.keyframe ? 'key' : 'delta';
+      const packet = new EncodedPacket(frame.data, packetType, frame.timestamp/1e6, frame.duration/1e6);
+      videoSource.add(packet, meta);
+
+    } else if (frame.type === 'audio){
+      const packet = new EncodedPacket(frame.data, 'key', frame.timestamp/1e6, frame.duration/1e6);
+      audioSource.add(packet, meta);
+    }
+}
+```
+Where `frame` and `meta` are essentially what come out from the `AudioEncoder` and `VideoEncoder`, but because we are transmitting data via binary, we need to encode it to binary on the client, and decode it to binary on the server.
+
+<Tabs>
+
+  <TabItem label="Browser">
+  ```typescript
+new VideoEncoder({
+  output: (chunk: EncodedVideoChunk, meta: any){
+      const buffer <Uint8Array> encodeBuffer(chunk, meta);
+      //Send this over the network
+  },
+ // ...
+})
+```
+  </TabItem>
+  <TabItem label = "Server">
+
+```typescript
+const {encodedChunk, meta} = decodeBuffer(<Uint8Array> buffer);
+```
+
+
+  </TabItem>
+  </Tabs>
+
+
+
+Here's a full Serialization/Deserialization example
+
+<details>
+<summary> Full Serialization / Deserialization</summary>
+<Tabs>
+
+  <TabItem label="Browser">
+
+  ```typescript
+  function encodeFrame(type: 'audio' | 'video', chunk: EncodedVideoChunk | EncodedAudioChunk, isKeyframe = false, meta = null): Uint8Array {
+    const chunkData = new Uint8Array(chunk.byteLength);
+    chunk.copyTo(chunkData);
+
+    let configBytes = new Uint8Array(0);
+    let descriptionBytes = new Uint8Array(0);
+
+    if (meta && meta.decoderConfig) {
+      // Extract description separately
+      const { description, ...configWithoutDesc } = meta.decoderConfig;
+
+      // Serialize config without description
+      const configJson = JSON.stringify({ decoderConfig: configWithoutDesc });
+      configBytes = new TextEncoder().encode(configJson);
+
+      // Keep description as binary
+      if (description) {
+        descriptionBytes = new Uint8Array(description);
+      }
+    }
+
+    const buffer = new Uint8Array(26 + configBytes.byteLength + descriptionBytes.byteLength + chunkData.byteLength);
+    const view = new DataView(buffer.buffer);
+
+    let offset = 0;
+    view.setUint8(offset, type); offset += 1; // 0 = video, 1 = audio
+    view.setBigUint64(offset, BigInt(chunk.timestamp), true); offset += 8;
+    view.setBigUint64(offset, BigInt(chunk.duration || 0), true); offset += 8;
+    view.setUint8(offset, isKeyframe ? 1 : 0); offset += 1;
+    view.setUint32(offset, configBytes.byteLength, true); offset += 4;
+
+    buffer.set(configBytes, offset); offset += configBytes.byteLength;
+
+    view.setUint32(offset, descriptionBytes.byteLength, true); offset += 4;
+    buffer.set(descriptionBytes, offset); offset += descriptionBytes.byteLength;
+    buffer.set(chunkData, offset);
+
+    return buffer;
+  }
+
+
+```
+
+
+  </TabItem>
+
+    <TabItem label="Server">
+
+    ```typescript
+
+    /**
+ * Parse binary frame format:
+ * [type (1 byte)][timestamp (8 bytes)][duration (8 bytes)][keyframe (1 byte)]
+ * [configLength (4 bytes)][config JSON][descLength (4 bytes)][description][data]
+ * type: 0 = video, 1 = audio, 2 = config
+ */
+ 
+ function parseFrame(buffer: Uint8Array) {
+    
+    const view = new DataView(buffer.buffer, buffer.byteOffset);
+
+    const type = view.getUint8(0);
+
+    if (type === 2) {
+      // Config message: [type][config JSON]
+      const configJson = buffer.slice(1).toString();
+      return { type: 'config', config: JSON.parse(configJson) };
+    }
+
+    let offset = 0;
+    offset += 1; // type
+    const timestamp = Number(view.getBigUint64(offset, true)); offset += 8;
+    const duration = Number(view.getBigUint64(offset, true)); offset += 8;
+    const keyframe = view.getUint8(offset) === 1; offset += 1;
+    const configLength = view.getUint32(offset, true); offset += 4;
+
+    let decoderConfig = null;
+
+    if (configLength > 0) {
+      // Parse config JSON
+      const configBytes = buffer.slice(offset, offset + configLength);
+      const configJson = new TextDecoder().decode(configBytes);
+      const meta = JSON.parse(configJson);
+      decoderConfig = meta.decoderConfig || null;
+      offset += configLength;
+    }
+
+    // Parse description (always present in protocol, even if 0 length)
+    const descLength = view.getUint32(offset, true); offset += 4;
+    if (descLength > 0 && decoderConfig) {
+      const description = buffer.slice(offset, offset + descLength);
+      decoderConfig.description = description;
+      offset += descLength;
+    }
+
+    const data = buffer.slice(offset);
+
+    return {
+        type: type === 0 ? 'video' : 'audio',
+        timestamp,
+        duration,
+        keyframe,
+        decoderConfig,
+        data
+    };
+}
+
+
+    ```
+  </TabItem>
+
+</Tabs>
+
+</details>
+
+
+When you're done recording, just call `output.finalize()`
+
+```typescript
+await output.finalize(); // File saved to disk
+```
+
+The file will be saved to disk. Muxing is efficient enough that you could record dozens of streams in parallel on a single server.
+
+###### WebSockets Demo
+
+[Media over Quic](../../projects/moq) is a new project, and so as of December 2025, there are Moq clients for Rust and for the browser, but there aren't many established client libraries for other server runtimes.
+
+For streaming encoded video to the browser, we'll use WebSockets for now. You'll also notice I didn't quite use the Hang format here in the serialization, I changed it a bit to make it easier to work with WebSockets and MediaBunny.
+
+
+
+For the first time, this demo can't be embedded in the document as it's a server repo. You'll need a javascript runtime (e.g. node, bun, deno) to run the server:
+
+```
+git clone https://github.com/sb2702/webcodecs-examples.git
+cd webcodecs-examples/src/moq-server
+npm install
+node subscriber
+```
+
+And just open up to `http://localhost:3000/upload.html`
+
+![](/assets/patterns/livestreaming/websockets-demo.png)
+
+You'll be able to stream encoded video data to the local server over webcodecs, and mux the stream to a local video file. You can of course see the full source code here: ([server](https://github.com/sb2702/webcodecs-examples/blob/main/src/moq-server/subscriber.js), [browser](https://github.com/sb2702/webcodecs-examples/blob/main/src/moq-server/public/upload.html))
 
 ### Server to browser
 
