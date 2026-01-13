@@ -1,6 +1,6 @@
 ---
-title: Playback Architecture
-description: Ring buffers, backpressure, and AV sync
+title: WebCodecs Codec Registry
+description: A list of fully qualified WebCodecs strings
 ---
 
 TBD

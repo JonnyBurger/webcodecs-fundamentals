@@ -1,5 +1,5 @@
 ---
-title: Playback Architecture
+title: WebCodecs performance
 description: Ring buffers, backpressure, and AV sync
 ---
 
