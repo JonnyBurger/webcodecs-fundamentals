@@ -38,7 +38,7 @@ export default defineConfig({
 				replacesTitle: true
 			},
 			social: [
-				{ icon: 'github', label: 'GitHub', href: 'https://github.com/yourusername/webcodecs-fundamentals' }
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/sb2702/webcodecs-fundamentals' }
 			],
 			sidebar: [
 				{
