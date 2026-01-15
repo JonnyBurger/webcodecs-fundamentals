@@ -164,7 +164,7 @@ timestamp,user_agent,browser,platform_raw,platform,codec,supported
 
 ## Data Collection Methodology
 
-This dataset was collected from real users of [free.upscaler.video](https://free.upscaler.video), an [open-source utility](https://github.com/sb2702/free-ai-video-upscaler) to upscale videos in the browser, serving ~100,000 monthly active users.
+This dataset was collected in a completely anonymized fashion from real users of [free.upscaler.video](https://free.upscaler.video), an [open-source utility](https://github.com/sb2702/free-ai-video-upscaler) to upscale videos in the browser, serving ~100,000 monthly active users.
 
 > **For complete methodology details**, including sampling strategy, statistical controls, and browser detection logic, see **[Dataset Methodology](https://free.upscaler.video/research/webcodecs-dataset)** on free.upscaler.video.
 

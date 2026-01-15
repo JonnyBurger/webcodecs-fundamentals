@@ -64,7 +64,7 @@ description: Complete registry of 1,087 codec strings tested across real-world b
 
 This page contains a comprehensive registry of **1,087 codec strings** tested with the WebCodecs API across real-world browsers and platforms.
 
-> **About this dataset:** This data comes from 143,181 real user sessions testing 45,519,786 codecs. See the [Codec Support Dataset](/datasets/codec-support/) page for methodology, download links, and usage information. [Download Dataset (ZIP)](/upscaler-video-codec-dataset.zip)
+> **About this dataset:** This data comes from 143,181 real user sessions testing 45,519,786 codecs. See the [Codec Support Dataset](/datasets/codec-support/) page for methodology, download links, and usage information.
 
 ## Codec Families
 
