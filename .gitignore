@@ -22,8 +22,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Codec test results
+# Codec test results and dataset
 codec_results/
 
+# Large dataset files
+public/upscaler-video-codec-dataset.zip
+public/upscaler-video-codec-dataset-raw.csv
+public/upscaler-video-codec-dataset.zip
 
 Gruntfile.cjs

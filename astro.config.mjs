@@ -129,11 +129,10 @@ export default defineConfig({
 				{
 					label: 'Datasets',
 					items: [
-						{ label: 'About', slug: 'datasets/intro' },
+				
 						{ label: 'Codec Registry', slug: 'datasets/codec-registry' },
 						{ label: 'Codec Support', slug: 'datasets/codec-support' },
-						{ label: 'Encode/Decode Performance', slug: 'datasets/performance' },
-						{ label: 'Key Frames vs Delta frames', slug: 'datasets/key-delta' },
+	
 					],
 				},
 
