@@ -112,7 +112,7 @@ Because decoding isn't just some compute-heavy function.
 
 Sometimes videos have B frames which require frames to be decoded in a different order from which they are displayed.  Also, the `VideoDecoder` is a wrapper around actual hardware which works with frames in batches,  and also requires multiple internal async calls between the CPU and the GPU. 
 
-By necessity, the decoder needs to maintain an internal buffer to work properly. It might be easier to visualize the decoder as like a [Rube Goldberg machine](../../reference/easter-eggs#rube-goldberg-machine), where you continuously feed in chunks to decode, and video frames come out the other end.
+By necessity, the decoder needs to maintain an internal buffer to work properly. It might be easier to visualize the decoder as like a [Rube Goldberg machine](../../reference/inside-jokes#rube-goldberg-machine), where you continuously feed in chunks to decode, and video frames come out the other end.
 
 ![](/assets/basics/decoder/rube-goldberg.png)
 

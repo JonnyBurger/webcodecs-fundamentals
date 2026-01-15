@@ -1931,7 +1931,7 @@ We'll also expose `getCurrentTime()` and `player.duration` which we'll need for 
 
 ## Demo
 
-Now that we've built the player, we can go ahead and vibe-code a simple player interface, which will load a video file, or a demo video ([Big Buck Bunny](../../reference/easter-eggs#big-buck-bunny)) and verify playback works.
+Now that we've built the player, we can go ahead and vibe-code a simple player interface, which will load a video file, or a demo video ([Big Buck Bunny](../../reference/inside-jokes#big-buck-bunny)) and verify playback works.
 
 <iframe src="/demo/player/index.html" frameBorder="0" width="720" style="height: 860px;" ></iframe>
 

@@ -142,7 +142,7 @@ export default defineConfig({
 					items: [
 						{ label: 'About', slug: 'reference/about' },
 						{ label: 'Sources', slug: 'reference/sources' },
-						{ label: 'Easter Eggs', slug: 'reference/easter-eggs' },
+						{ label: 'Inside Jokes', slug: 'reference/inside-jokes' },
 					],
 				},
 			],

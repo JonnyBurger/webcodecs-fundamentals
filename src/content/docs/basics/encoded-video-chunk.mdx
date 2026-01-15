@@ -250,7 +250,7 @@ It's actually more complicated than that in the real world, because actual codec
 So our "simpler" scenario with just frames encoding "frame differences" (P-frames in h264) would look like this, where frames are displayed in the order in which they are decoded:
 ![](/assets/basics/chunks/decode-order-1.svg)
 
-But if the video has "B" frames, then the frame needs to reference information from *future* frames. Video Decoders can't magically read the future [[citation needed]](../../reference/easter-eggs#citation-needed) so we instead need to decode chunks in a different order from which we display them.
+But if the video has "B" frames, then the frame needs to reference information from *future* frames. Video Decoders can't magically read the future [[citation needed]](../../reference/inside-jokes#citation-needed) so we instead need to decode chunks in a different order from which we display them.
 
 ![](/assets/basics/chunks/decode-order-2.svg)
 

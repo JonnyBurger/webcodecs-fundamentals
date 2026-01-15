@@ -288,7 +288,7 @@ Just keep in mind that raw audio is still quite big with 1 hour of audio taking 
 
 ## WebAudio audio player
 
-Now let's build a working audio player step by step. We'll use a 14 second audio clip from [Big Buck Bunny](../../reference/easter-eggs) as a demo.
+Now let's build a working audio player step by step. We'll use a 14 second audio clip from [Big Buck Bunny](../../reference/inside-jokes) as a demo.
 
 <audio src="/assets/audio/audio-data/bbb-excerpt.mp3" controls> </audio>
 
