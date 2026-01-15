@@ -243,8 +243,8 @@ async function transcodeFile(file: File): Promise <ArrayBuffer> {
         source: new BlobSource(file),
     });
 
-    const audioTrack  = input.getPrimaryAudioTrack();
-    const videoTrack = input.getPrimaryVideoTrack();
+    const audioTrack  = await input.getPrimaryAudioTrack();
+    const videoTrack = await input.getPrimaryVideoTrack();
 
     const output = new Output({
         format: new Mp4OutputFormat(),
