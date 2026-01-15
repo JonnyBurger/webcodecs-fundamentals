@@ -82,10 +82,28 @@ const codec = VideoEncoder({
 })
 ```
 
-Instead, you need a fully qualified *codec string* such as: `vp09.00.10.08` which includes additional settings such as *levels* and *profiles*, which are high-level settings/configs you can choose, which affect low-level encoding choices such as macro-block size and chrome-sub-sampling used by the encoder.
+Instead, you need a fully qualified *codec string* such as: `vp09.00.10.08` which includes additional settings such as *levels* and *profiles*, which are high-level settings/configs you can choose, which affect low-level encoding choices such as macro-block size and chrome-sub-sampling used by the encoder. The format varies by codec family:
 
+**AV1 Example:** `av01.0.05M.08`
+- `av01` = AV1 codec
+- `0` = Profile (Main)
+- `05M` = Level (5.1)
+- `08` = Bit depth
 
-Even more unhelpfully, W3C doesn't keep a list of valid codec strings[[1](https://www.w3.org/TR/webcodecs-codec-registry/#video-codec-registry)].
+**VP9 Example:** `vp09.00.10.08`
+- `vp09` = VP9 codec
+- `00` = Profile
+- `10` = Level
+- `08` = Bit depth
+
+**H.264 Example:** `avc1.64001f`
+- `avc1` = H.264/AVC
+- `64` = Profile (High)
+- `00` = Constraint flags
+- `1f` = Level (3.1)
+
+The [W3C WebCodecs Codec Registry](https://www.w3.org/TR/webcodecs-codec-registry/#video-codec-registry) defines the format for each codec family (and thus the rules for constructing valid codec strings), but **does not provide an exhaustive list of valid strings**. Based on the rules by the codec registry, I constructed 1000+ codec strings, and compiled support tables which you can see in the [Codec Support Table](/datasets/codec-support-table/).
+
 
 
 If you just want to encode a video and get on with your life, here's a quick & easy list of codec strings to maximize compatibility.
@@ -104,7 +122,7 @@ If you just want to encode a video and get on with your life, here's a quick & e
 * 'vp9.00.50.08.00' - level 5  
 * 'vp9.00.40.08.00' - level 4  
 
-
+Again, refer to the [Codec Support Table](/datasets/codec-support-table/) for full compatability data.
 
 ###  How to choose a codec string
 
@@ -222,8 +240,8 @@ const codec_string = getCodecString('avc', 1920, 1080, bitrate);
 
 ### Comprehensive list of codec strings
 
-See [here](../../datasets/codec-strings)
+See the [Codec Support Table](/datasets/codec-support-table/) for 1,087 tested codec strings with real-world browser and platform support data.
 
 ### Device support
 
-See [here](../../datasets/codec-support)
+See the [Codec Support Dataset](/datasets/codec-support/) page for downloadable data and methodology.
