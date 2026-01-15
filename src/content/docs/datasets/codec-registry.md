@@ -3,6 +3,65 @@ title: WebCodecs Codec Registry
 description: Complete registry of 1,087 codec strings tested across real-world browsers and platforms
 ---
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "WebCodecs Codec Registry",
+  "description": "Searchable registry of 1,087 WebCodecs codec strings with real-world browser and platform support data from 143,181 test sessions.",
+  "url": "https://webcodecsfundamentals.org/datasets/codec-registry/",
+  "about": {
+    "@type": "SoftwareApplication",
+    "name": "WebCodecs API",
+    "url": "https://w3c.github.io/webcodecs/"
+  },
+  "isPartOf": {
+    "@type": "Dataset",
+    "name": "The upscaler.video Codec Support Dataset",
+    "url": "https://webcodecsfundamentals.org/datasets/codec-support/",
+    "sameAs": "https://free.upscaler.video/research/webcodecs-dataset"
+  },
+  "mainEntity": {
+    "@type": "ItemList",
+    "name": "Tested Codec Strings",
+    "numberOfItems": 1087,
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "name": "AVC (H.264) codecs",
+        "description": "342 H.264/AVC codec variants"
+      },
+      {
+        "@type": "ListItem",
+        "name": "HEVC (H.265) codecs",
+        "description": "84 H.265/HEVC codec variants"
+      },
+      {
+        "@type": "ListItem",
+        "name": "VP9 codecs",
+        "description": "210 VP9 codec variants"
+      },
+      {
+        "@type": "ListItem",
+        "name": "AV1 codecs",
+        "description": "432 AV1 codec variants"
+      },
+      {
+        "@type": "ListItem",
+        "name": "VP8 codecs",
+        "description": "VP8 codec variants"
+      },
+      {
+        "@type": "ListItem",
+        "name": "Audio codecs",
+        "description": "18 audio codec formats"
+      }
+    ]
+  },
+  "keywords": ["WebCodecs registry", "codec compatibility", "H.264 support", "AV1 support", "VP9 support", "HEVC support", "browser codec support", "codec string reference"]
+}
+</script>
+
 This page contains a comprehensive registry of **1,087 codec strings** tested with the WebCodecs API across real-world browsers and platforms.
 
 > **About this dataset:** This data comes from 143,181 real user sessions testing 45,519,786 codecs. See the [Codec Support Dataset](/datasets/codec-support/) page for methodology, download links, and usage information. [Download Dataset (ZIP)](/upscaler-video-codec-dataset.zip)

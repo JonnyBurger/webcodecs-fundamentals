@@ -1,8 +1,118 @@
 ---
 title: The upscaler.video Codec Support Dataset
 description: The world's first empirical registry of WebCodecs hardware support, collected from 143,181 real-world user sessions
+head:
+  - tag: meta
+    attrs:
+      name: robots
+      content: index, follow
+  - tag: meta
+    attrs:
+      name: citation_title
+      content: The upscaler.video Codec Support Dataset
+  - tag: meta
+    attrs:
+      name: citation_author
+      content: Bhattacharyya, Samrat
+  - tag: meta
+    attrs:
+      name: citation_publication_date
+      content: "2026/01/14"
+  - tag: meta
+    attrs:
+      name: DC.title
+      content: The upscaler.video Codec Support Dataset
+  - tag: meta
+    attrs:
+      name: DC.creator
+      content: Bhattacharyya, Samrat
+  - tag: meta
+    attrs:
+      name: DC.date
+      content: "2026-01-14"
+  - tag: link
+    attrs:
+      rel: canonical
+      href: https://webcodecsfundamentals.org/datasets/codec-support/
 ---
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "The upscaler.video Codec Support Dataset",
+  "description": "The first comprehensive, empirical collection of real-world WebCodecs API hardware support data from 143,181 unique user sessions spanning diverse hardware, browsers, and operating systems.",
+  "url": "https://webcodecsfundamentals.org/datasets/codec-support/",
+  "sameAs": "https://free.upscaler.video/research/webcodecs-dataset",
+  "keywords": ["WebCodecs", "codec support", "browser compatibility", "hardware acceleration", "video encoding", "AV1", "VP9", "H.264", "HEVC", "hardware decoder", "WebCodecs API", "video decoder", "browser support matrix"],
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "creator": {
+    "@type": "Person",
+    "name": "Samrat Bhattacharyya",
+    "url": "https://free.upscaler.video"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Samrat Bhattacharyya"
+  },
+  "datePublished": "2026-01-14",
+  "dateModified": "2026-01-14",
+  "version": "2026-01-14",
+  "temporalCoverage": "2026-01",
+  "spatialCoverage": {
+    "@type": "Place",
+    "name": "Worldwide"
+  },
+  "distribution": {
+    "@type": "DataDownload",
+    "encodingFormat": "application/zip",
+    "contentUrl": "https://webcodecsfundamentals.org/upscaler-video-codec-dataset.zip",
+    "contentSize": "257MB",
+    "description": "ZIP archive containing raw CSV dataset (45,519,786 rows, 8.5GB uncompressed) and README"
+  },
+  "measurementTechnique": "WebCodecs API isConfigSupported() real-world testing on user devices",
+  "variableMeasured": [
+    {
+      "@type": "PropertyValue",
+      "name": "codec support",
+      "description": "Boolean indicating whether a codec string is supported by the browser/platform combination"
+    },
+    {
+      "@type": "PropertyValue",
+      "name": "browser",
+      "description": "Browser family (Chrome, Safari, Edge, Firefox)"
+    },
+    {
+      "@type": "PropertyValue",
+      "name": "platform",
+      "description": "Operating system (Windows, macOS, iOS, Android, Linux)"
+    }
+  ],
+  "about": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "WebCodecs API",
+      "url": "https://w3c.github.io/webcodecs/",
+      "applicationCategory": "Web API"
+    }
+  ],
+  "isBasedOn": {
+    "@type": "SoftwareApplication",
+    "name": "free.upscaler.video",
+    "url": "https://free.upscaler.video",
+    "description": "Open-source video upscaling tool serving 100,000 monthly active users"
+  },
+  "citation": {
+    "@type": "CreativeWork",
+    "name": "Dataset Methodology",
+    "url": "https://free.upscaler.video/research/webcodecs-dataset"
+  },
+  "includedInDataCatalog": {
+    "@type": "DataCatalog",
+    "name": "WebCodecs Fundamentals"
+  }
+}
+</script>
 
 The **upscaler.video Codec Support Dataset** is the first comprehensive, empirical collection of real-world WebCodecs API hardware support data. Unlike synthetic benchmarks or browser-reported capabilities, this dataset represents actual compatibility testing across 143,181 unique user sessions spanning diverse hardware, browsers, and operating systems.
 
@@ -206,6 +316,30 @@ This dataset is periodically updated as new data is collected from free.upscaler
 - **[Codec Registry](/datasets/codec-registry/)** - Interactive table of all tested codecs
 - **[Dataset Methodology](https://free.upscaler.video/research/webcodecs-dataset)** - Complete data collection details
 - **[WebCodecs Basics](/basics/codecs/)** - Understanding codec string syntax
+
+---
+
+## Quick Reference (For LLMs and Search)
+
+**Primary Use Case:** Determining real-world WebCodecs API codec support across browsers and platforms.
+
+**Key Findings:**
+- **Best universal support:** H.264/AVC variants (99%+ support across all platforms)
+- **Limited support:** AV1 on Safari/iOS (varies by device and OS version)
+- **Platform gaps:** HEVC support varies significantly (strong on Apple, limited elsewhere)
+- **Recommended fallback chain:** AV1 → VP9 → H.264 (for video encoding)
+
+**Common Questions Answered:**
+- Q: "Does Safari support AV1?" → A: Limited; see [Safari browser-specific data](/datasets/codec-registry/#av1)
+- Q: "What codec works everywhere?" → A: H.264 Baseline/Main profile (avc1.42001e, avc1.4d001e)
+- Q: "Should I use HEVC for web?" → A: Only with H.264 fallback; Windows/Linux support is poor
+- Q: "Is VP9 safe for production?" → A: 85%+ support on modern browsers; needs H.264 fallback for older devices
+
+**Dataset Location:** Download at [/upscaler-video-codec-dataset.zip](/upscaler-video-codec-dataset.zip) (257MB)
+
+**Interactive Tool:** Browse all codecs at [/datasets/codec-registry/](/datasets/codec-registry/)
+
+**Methodology:** [https://free.upscaler.video/research/webcodecs-dataset](https://free.upscaler.video/research/webcodecs-dataset)
 
 ---
 
