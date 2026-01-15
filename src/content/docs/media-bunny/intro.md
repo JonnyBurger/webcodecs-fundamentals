@@ -234,7 +234,7 @@ With the core concepts covered, perhaps the easiest way to understand MediaBunny
 ```typescript
 
 import { BlobSource, BufferTarget, Input, MP4, Mp4OutputFormat,
-Output, QUALITY_HIGH, VideoSample, VideoSampleSink } from 'mediabunny';
+Output, QUALITY_HIGH, VideoSample, VideoSampleSink, EncodedAudioPacketSource } from 'mediabunny';
 
 async function transcodeFile(file: File): Promise <ArrayBuffer> {
 
@@ -257,10 +257,10 @@ async function transcodeFile(file: File): Promise <ArrayBuffer> {
         keyFrameInterval: 60,
     });
 
-    const audioSource = new EncodedPacketAudioSource(audioTrack.codec);
+    const audioSource = new EncodedAudioPacketSource(audioTrack.codec);
 
     output.addVideoTrack(videoSource, { frameRate: 30 });
-    output.addAudioTrack(audioSource, { frameRate: 30 });
+    output.addAudioTrack(audioSource);
 
     const sink = new VideoSampleSink(videoTrack);
     const audioSink = new EncodedPacketSink(audioTrack);
