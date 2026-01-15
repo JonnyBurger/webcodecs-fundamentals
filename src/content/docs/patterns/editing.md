@@ -1,34 +1,8 @@
 ---
-title: Video Editing
-description: Ring buffers, backpressure, and AV sync
+title: How to build a video editor with WebCodecs
+description: Patterns and best practices for building video editing functionality with WebCodecs
 ---
 
 
-
-# Layout
-
-## Template
-- 2 video sources
-
-We're going to get the architecture
-
-
-## Elements on the screen
-- Images
-- Text
-- Popups
-
-## Scene
-- Adjust a layout
-- What videos are shown
-
-# Animation
-- Text
-- name tags
-
-## Timeline
-
-## Fade transition
-
-
+Work in Progress
 
