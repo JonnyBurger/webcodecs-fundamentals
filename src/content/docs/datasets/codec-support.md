@@ -116,6 +116,8 @@ head:
 
 The **upscaler.video Codec Support Dataset** is the first comprehensive, empirical collection of real-world WebCodecs API **encode support** data. Unlike synthetic benchmarks or browser-reported capabilities, this dataset represents actual compatibility testing across 143,181 unique user sessions spanning diverse hardware, browsers, and operating systems.
 
+Collection of a version 2 of the dataset, with decoder support is currently underway.
+
 ## Dataset Overview
 
 - **Measurement Type:** Encode support (using `VideoEncoder.isConfigSupported()`)
