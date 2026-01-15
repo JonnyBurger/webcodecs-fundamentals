@@ -1,17 +1,28 @@
 ---
-title: Easter eggs
-description: An explanation of some of the hidden references
+title: Easter Eggs & Inside Jokes
+description: Explanations of the hidden references and inside jokes throughout this site
 ---
 
+This site contains a few recurring inside jokes and references. Here's what they mean:
 
+## Citation Needed
 
-* Citation Needed (xkcd)
+[Citation needed]
 
+_More details coming soon._
 
-* Rube Goldberg Machine
+## Big Buck Bunny
 
+Big Buck Bunny is a classic reference in video engineering circles.
 
-* Big Buck Bunny (video engineer meme)
+_More details coming soon._
 
+## Rube Goldberg Machine
 
-* Not hotdog (HBO's Silicon Valley reference)
+_More details coming soon._
+
+## Not Hotdog
+
+A reference to HBO's Silicon Valley.
+
+_More details coming soon._

@@ -8,7 +8,7 @@ Codecs are the algorithms for turning raw video frames into compact binary encod
 ![](/assets/basics/codecs/codec.png)
 
 
-We won't go into how these algorithms actually work (video compression is its own big-buck-bunny-sized rabbit hole) but this article will cover the practical basics that you need to know as a developer building a WebCodecs application.
+We won't go into how these algorithms actually work (video compression is its own [big-buck-bunny](../../reference/easter-eggs#big-buck-bunny)-sized rabbit hole) but this article will cover the practical basics that you need to know as a developer building a WebCodecs application.
 
 
 ### Main Video Codecs

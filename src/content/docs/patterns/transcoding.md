@@ -8,7 +8,7 @@ In the [Video Decoder](../../basics/decoder) section, we learned how to decode v
 ![](/assets/basics/encoder/rube-goldberg-2.png)
 
 
-Conceptually yes, transcoding is just chaining a decode process to an encode process, but as we discussed earlier, a `VideoEncoder` and `VideoDecoder` aren't simple `async` calls, but rather more like Rube Goldberg machines that you have to push chunks and frames through.
+Conceptually yes, transcoding is just chaining a decode process to an encode process, but as we discussed earlier, a `VideoEncoder` and `VideoDecoder` aren't simple `async` calls, but rather more like [Rube Goldberg machines](../../reference/easter-eggs#rube-goldberg-machine) that you have to push chunks and frames through.
 
 To properly implement transcoding in WebCodecs, we can't just think of it as a simple for loop:
 

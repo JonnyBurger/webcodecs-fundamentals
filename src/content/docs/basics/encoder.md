@@ -245,7 +245,7 @@ Encoding performance varies dramatically across devices and browsers, and is in 
 
 #### Another Rube-Goldberg machine
 
-Much like the [VideoDecoder](../video-decoder), you shouldn't think of the `encode()` function as some async task, it's better to treat the encoder as a [Rube-Goldberg machine](https://en.wikipedia.org/wiki/Rube_Goldberg_machine), where you continuously feed frames, feeding frames in pushes the process along, and encoded chunks come out the other end.
+Much like the [VideoDecoder](../video-decoder), you shouldn't think of the `encode()` function as some async task, it's better to treat the encoder as a [Rube Goldberg machine](../../reference/easter-eggs#rube-goldberg-machine), where you continuously feed frames, feeding frames in pushes the process along, and encoded chunks come out the other end.
 
 ![](/assets/basics/encoder/rube-goldber-encoder.png)
 

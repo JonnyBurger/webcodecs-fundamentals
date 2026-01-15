@@ -39,7 +39,7 @@ Speakers or headphones do the reverse, they move a membrane according to this di
 ##### Stereo vs mono
 
 
-Humans typically have 2 ears [[citation needed](https://xkcd.com/285/)], and our brains can interpret slight differences in sound coming in each ear to "hear" where a sound is coming from. 
+Humans typically have 2 ears [[citation needed](../../reference/easter-eggs#citation-needed)], and our brains can interpret slight differences in sound coming in each ear to "hear" where a sound is coming from. 
 
 
 Most software and hardware that deal with digital audio are therefore built to support two audio signals, which we call "channels". 
@@ -48,7 +48,7 @@ Most software and hardware that deal with digital audio are therefore built to s
 Audio tracks with just one channel are called *mono*, and audio tracks with two channels are called *stereo*. In stereo audio, you might see the two channels referred to as *left*  and *right*  channels, and *stereo* audio is the default.
 
 
-Digital music or movies will often have slightly different signals in each channel for an immersive effect. Here's an example from [Big Buck Bunny](https://peach.blender.org/), where there's a sound effect created by two objects hitting a tree on the left side of the screen:
+Digital music or movies will often have slightly different signals in each channel for an immersive effect. Here's an example from [Big Buck Bunny](../../reference/easter-eggs#big-buck-bunny), where there's a sound effect created by two objects hitting a tree on the left side of the screen:
 
 <video src="/assets/audio/audio-data/bbb-exerpt.mp4" controls> </video>
 
