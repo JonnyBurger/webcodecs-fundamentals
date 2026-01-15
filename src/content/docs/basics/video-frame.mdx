@@ -304,7 +304,7 @@ But you can
 
 ##### Transferring
 
-Unlike `File` objects, `VideoFrame` objects are not references to data, they are tied to actual graphics memory. When you send a `VideoFrame` from the main thread to a worker (or vice-versa), you need to actually transfer them.
+Like `File` objects, `VideoFrame` objects are CPU references to data tied to actual graphics memory. When you send a `VideoFrame` from the main thread to a worker (or vice-versa), you are transferring a reference to the frame. Nonetheless, it is still good practice to transfer the references
 
 
 ```typescript
@@ -321,7 +321,3 @@ const decoder = new VideoDecoder({
 
 
 ```
-
-This avoids an expensive memory copy operation and the need to close frame on the source thread, as the data gets transferred to destination/worker thread.
-
-As we'll cover in [player architecture](../../patterns/playback), this is a standard pattern when using multiple video decoders in parallel to composite multiple video sources together.

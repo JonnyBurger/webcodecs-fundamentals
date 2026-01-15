@@ -521,6 +521,13 @@ function resample(audio: AudioData[], target_sample_rate: number): AudioData[] {
 
 ```
 
+### Memory management
+
+Like with `VideoFrame` objects, `AudioData` objects also have a big memory footprint. When doing audio processing with `AudioData`, you therefore also need to call `close()` to manage memory and avoid overloading the device.
+
+`AudioData` objects are also references to actual memory, so cloning `AudioData` does not copy the data, it just creates another reference to the same underlying data.
+
+
 ### Next up
 
 Now that you've seen how  `AudioData` objects work and raw audio works, we can move on to `EncodedAudioChunk` objects.
