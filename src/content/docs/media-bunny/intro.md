@@ -100,7 +100,7 @@ A media source is where you'd get video from, like a `<canvas>` or a webcam, and
 So to record a `<canvas>` to file, the setup to pipe the canvas to the file would look like this
 
 ```typescript
-import { CanvasSource, Output, Mp4OutputFormat,} from 'mediabunny';
+import { CanvasSource, Output, Mp4OutputFormat } from 'mediabunny';
 
 const videoSource = new CanvasSource(canvasElement, {codec: 'avc',bitrate: 1e6});
 
