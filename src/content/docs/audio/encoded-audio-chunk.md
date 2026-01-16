@@ -32,16 +32,21 @@ Only AAC and Opus are actually supported by WebCodecs. You'd need separate libra
 
 Like with `VideoEncoder`, for `AudioEncoder` you don't just specify 'aac' as a codec, you need to specify a full codec string.
 
-Here are the codec strings for AAC [[1](https://www.w3.org/TR/webcodecs-aac-codec-registration/)]
+
+For the most compatability use `opus` with a vp9 codec like [vp09.00.50.08.00](/codecs/vp09.00.50.08.00.html) in a WebM container, but if you want to output an MP4,  just use `mp4a.40.2`, it is supported in all Safari and Chromium browsers on Windows, macOS, Android, iOS and Chrome OS but not on desktop Linux. AAC audio is not supported on Firefox at all.
+
+##### Opus Codec Strings
+
+* `opus` - WebCodecs gives you a break here, you can just use 'opus' ([94.4% support](/codecs/opus.html))
+
 
 ##### AAC Codec Strings
-* 'mp4a.40.2' - Most common / basic / well supported codec string
-* 'mp4a.40.02' - basically the same as above
-* 'mp4a.40.5' - Uses a technique called SBR [[2]](https://en.wikipedia.org/wiki/Spectral_band_replication)
-* 'mp4a.40.05' - basically the same as above
-* 'mp4a.40.29' - Uses SBR and Parametric stereo [[3](https://en.wikipedia.org/wiki/Parametric_stereo)]
+* `mp4a.40.2` - Most common / basic / well supported codec string ([87.8% support](/codecs/mp4a.40.2.html))
+* `mp4a.40.02` - basically the same as above ([87.8% support](/codecs/mp4a.40.02.html))
+* `mp4a.40.5` - Uses a technique called SBR [[2]](https://en.wikipedia.org/wiki/Spectral_band_replication) ([87.8% support](/codecs/mp4a.40.5.html))
+* `mp4a.40.05` - basically the same as above ([87.8% support](/codecs/mp4a.40.05.html))
+* `mp4a.40.29` - Uses SBR and Parametric stereo [[3](https://en.wikipedia.org/wiki/Parametric_stereo)] ([87.8% support](/codecs/mp4a.40.29.html))
 
-When encoding, just use 'mp4a.40.2', it is supported in all major browsers on Windows, OSX, Android, iOS and Chrome OS but not on desktop linux.
 
 When decoding audio, you get what the source gives you. If the codec string is 'mp4a.40.5', 'mp4a.40.05' or 'mp4a.40.29', the actual sample rate is double what is specified. For example, if you decode and manually resample audio generated from those codecs, you need to do the following:
 
@@ -63,9 +68,6 @@ function resampleAudio(audio: AudioData[], source_config: AudioDecoderConfig, ta
 
 ``` 
 
-##### Opus Codec Strings
-
-* 'opus'-  WebCodecs gives you a break here, you can just use 'opus'.
 
 ### Demuxing
 
