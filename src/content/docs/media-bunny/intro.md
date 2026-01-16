@@ -202,7 +202,7 @@ import { BlobSource, Input, MP4, VideoSampleSink } from 'mediabunny';
 
 const input = new Input({
     formats: [MP4],
-    source: new BlobSource(file);
+    source: new BlobSource(file),
 });
 
 const videoTrack = await input.getPrimaryVideoTrack();
