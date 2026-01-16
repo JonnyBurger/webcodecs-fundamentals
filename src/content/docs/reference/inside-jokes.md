@@ -49,3 +49,15 @@ If you do watch the whole thing, you can of course give it a rating on [IMDB](ht
 
 ## Rube Goldberg Machine
 
+In the [VideoDecoder](../../basics/decoder), [VideoEncoder](../../basics/encoder) and [Transcoding](../../patterns/transcoding) I likened `VideoDecoder` and `VideoEncoder` objects to Rube Goldberg machines, as some type of complex mechanical machine.
+
+![](/assets/basics/encoder/rube-goldberg-2.png)
+
+In reality, Video Decoders and Video Encoders are actually complex as they encode/decode complex interframe depdencies [[6](../../basics/encoded-video-chunk/#presentation-order-versus-decode-order)], but that's hard to visualize, so I likened the encode/decode pipeline to a conveyer belt machine with complex mechanics as a visual metaphor.
+
+
+Rube Goldberg machines are no less complex, but unlike video compression software, Rube Goldberg machines are both incredibly useless and super fun to watch. Here's an example:
+
+<iframe width="640" height="360" style="height:360px" src="https://www.youtube.com/embed/pixh1vrogjE" title="Chain Reaction Rube Goldberg Machine - Guinness World Records" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+If you're struggling to wrap your head around [Discrete Cosine Transforms](https://www.youtube.com/watch?v=Q2aEzeMDHMA) and [B frames](https://en.wikipedia.org/wiki/Video_compression_picture_types), just imagine your decoder/encoder as a Rube Goldberg machine or marble run, and video frames as dominoes. It won't help you understand the tech, but at least it's fun to watch.
