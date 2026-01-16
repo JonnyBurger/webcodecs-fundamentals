@@ -198,12 +198,14 @@ Mediabunny abstracts the pipeline complexity away, enabling you to actually perf
 
 ```typescript
 
-import { BlobSource, Input, MP4, VideoSampleSink} from 'mediabunny';
+import { BlobSource, Input, MP4, VideoSampleSink } from 'mediabunny';
 
 const input = new Input({
     formats: [MP4],
     source: new BlobSource(file);
 });
+
+const videoTrack = await input.getPrimaryVideoTrack();
 
 const sink = new VideoSampleSink(videoTrack);
 
